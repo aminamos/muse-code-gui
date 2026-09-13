@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Default capabilities: the exec-runner UI only needs fetch to the relay, no privileged Tauri APIs.",
+  "windows": ["main"],
+  "permissions": []
+}
