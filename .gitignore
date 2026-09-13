@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+.expo/
+.expo-shared/
+web-build/
+*.log
+.DS_Store
+target/
+ios/
+android/
