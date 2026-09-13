@@ -45,6 +45,15 @@ credentials are invisible to that check).
   (+ backup). `codex mcp list/get` show enabled/stdio.
 - No live turns run here (relay MCP already proven live elsewhere).
 
+## Command Code (`~/.commandcode/`)
+
+- Provider `muse-code` in `providers.json` (BYOK: relay `/v1`,
+  apiKey `$MUSE_UI_RELAY_TOKEN`), model `muse-code/muse-code`.
+  MCP `muse-code` stdio in `mcp.json` (via `cmd mcp add --scope user`).
+- Verified: `cmd mcp list` shows muse-code enabled;
+  `cmd --list-models` shows `muse-code/muse-code` under "Muse Code (byok)".
+  No live turn run (relay provider path already proven via OMP/OpenCode).
+
 ## Adding another harness ("etc")
 
 MCP stdio works anywhere a harness accepts a command-based server
