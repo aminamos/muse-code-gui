@@ -1,0 +1,129 @@
+# Cloud builds for the Muse Code GUI desktop shells (repo: aminamos/muse-code-gui).
+#
+# WHAT IT DOES
+#   - relay job (ubuntu): type-checks + tests the relay (`deno task check`,
+#     full `deno task test`; note: the relay test suite includes tiny live
+#     subscription turns, kept as-is by design).
+#   - desktop job (matrix): builds the Tauri shells with tauri-action --
+#       macos-latest   -> apps/macos   (app + dmg)
+#       windows-latest -> apps/windows (nsis + msi)
+#     and uploads the bundles as workflow artifacts.
+#
+# REQUIRED SECRETS (all optional -- the workflow stays green without them):
+#   Apple signing / notarization for the macOS build. Add under:
+#     GitHub repo aminamos/muse-code-gui
+#       -> Settings -> Secrets and variables -> Actions -> New repository secret
+#     APPLE_CERTIFICATE          base64 .p12 Developer ID Application certificate
+#     APPLE_CERTIFICATE_PASSWORD password for the .p12
+#     APPLE_SIGNING_IDENTITY     e.g. "Developer ID Application: Name (TEAMID)"
+#     APPLE_ID                   Apple ID for notarization
+#     APPLE_PASSWORD             app-specific password for notarization
+#     APPLE_TEAM_ID              10-char Apple Team ID
+#   When these are absent the macOS app is built UNSIGNED (Tauri skips signing
+#   when APPLE_SIGNING_IDENTITY is unset) instead of failing.
+#
+# TRIGGERS: push to main + manual dispatch. No app-level live model turns are
+# run here; the only model spend is whatever the relay tests already use.
+
+name: cloud-build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege: checkout + (no release upload) needs read-only contents.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  relay:
+    name: relay check + test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: relay
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check relay
+        run: deno task check
+
+      # Full suite on purpose: includes tiny live subscription turns (kept as-is).
+      - name: Test relay
+        run: deno task test
+
+  desktop:
+    name: desktop (${{ matrix.shell }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            shell: macos
+            project: apps/macos
+            # Mirrors the flags in apps/macos package.json `tauri:build:macos`.
+            args: --bundles app dmg
+          - os: windows-latest
+            shell: windows
+            project: apps/windows
+            # Mirrors the flags in apps/windows package.json `tauri:build:windows`.
+            args: --bundles nsis msi
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend dependencies
+        working-directory: ${{ matrix.project }}
+        run: npm ci
+
+      # NOTE: `tauriScript` is deliberately NOT set. With the default runner the
+      # action invokes the repo's local CLI via the `tauri` npm script (present
+      # in both shells' package.json) as `npm run tauri build -- <args>`.
+      # Setting tauriScript to `tauri:build:macos`/`tauri:build:windows` would
+      # double-append `build` and break, so the per-OS bundle flags travel via
+      # `args` instead (same flags, same result).
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: ${{ matrix.project }}
+          args: ${{ matrix.args }}
+        env:
+          # Apple signing/notarization (macOS only; ignored on Windows).
+          # tauri-action exposes NO signing inputs (verified against its
+          # action.yml) -- the Tauri CLI reads these env vars directly.
+          # Unset/empty => unsigned build, no failure.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload bundles
+        uses: actions/upload-artifact@v4
+        with:
+          name: muse-code-gui-${{ matrix.shell }}-${{ github.sha }}
+          path: ${{ matrix.project }}/src-tauri/target/release/bundle/**
+          if-no-files-found: error
