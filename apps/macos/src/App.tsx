@@ -57,6 +57,11 @@ export default function App() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const tAbortRef = useRef<AbortController | null>(null);
 
+  /** Display names only: the relay reports its local engine by binary name. */
+  function displayEngineText(s: string): string {
+    return s.replace(/whisper(\s+\S+)?/gi, "local transcription");
+  }
+
   function handleTranscribeEvent(event: TranscribeEvent) {
     switch (event.type) {
       case "started":
@@ -241,9 +246,9 @@ export default function App() {
           <button onClick={handleTranscribeStop} disabled={!tRunning}>
             Stop
           </button>
-          <span className="status">{tStatus}</span>
+          <span className="status">{displayEngineText(tStatus)}</span>
         </div>
-        {tMeta !== "" && <p>{tMeta}</p>}
+        {tMeta !== "" && <p>{displayEngineText(tMeta)}</p>}
         <h3>Segments</h3>
         <pre className="output">
           {tSegments.length === 0
