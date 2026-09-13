@@ -74,6 +74,14 @@ Deno.test("server: auth gate + health + ingest + exec echo + mcp", async () => {
     })).json();
     assertEquals(ing.text, "abc");
 
+    // voice_exec validation rejects a missing audio source without spending.
+    const badVoice = await fetch(`${BASE}/api/voice_exec`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    assertEquals(badVoice.status, 400);
+
     const execRes = await fetch(`${BASE}/api/exec`, {
       method: "POST",
       headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
@@ -92,7 +100,15 @@ Deno.test("server: auth gate + health + ingest + exec echo + mcp", async () => {
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
     })).json();
     const names = (mcp.result.tools as Array<{ name: string }>).map((t) => t.name).sort();
-    assertEquals(names, ["ingest_document", "muse_exec", "rss_episodes", "transcribe_audio"]);
+    assertEquals(names, ["ingest_document", "muse_exec", "rss_episodes", "transcribe_audio", "voice_exec"]);
+
+    // voice_exec validates its audio source before spending anything.
+    const badVoiceMcp = await (await fetch(`${BASE}/mcp`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "voice_exec", arguments: {} } }),
+    })).json();
+    assert(badVoiceMcp.error !== undefined, "voice_exec without audio must error");
   } finally {
     child.kill("SIGTERM");
     await child.status;

@@ -135,7 +135,8 @@ _Full references: [docs/PROVIDERS.md](docs/PROVIDERS.md) (per-harness entries),
 [docs/TRANSCRIBE.md](docs/TRANSCRIBE.md) (transcription),
 [docs/SDK.md](docs/SDK.md) (engine + fallback),
 [docs/EXEC-CONTRACT.md](docs/EXEC-CONTRACT.md) (frozen wire contract),
-[docs/WINDOWS.md](docs/WINDOWS.md) + [docs/WINDOWS-TEST.md](docs/WINDOWS-TEST.md) (Windows setup and test plan)._
+[docs/WINDOWS.md](docs/WINDOWS.md) + [docs/WINDOWS-TEST.md](docs/WINDOWS-TEST.md) (Windows setup and test plan),
+[docs/LOCAL-ACCESS.md](docs/LOCAL-ACCESS.md) (local MCP, ACP, API, CLI + voice)._
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

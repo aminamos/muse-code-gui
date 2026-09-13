@@ -5,6 +5,7 @@
 
 import { runMuseExec } from "./muse.ts";
 import { runTranscribe, parseRssEpisodes } from "./transcribe.ts";
+import { runVoiceCollect } from "./voice.ts";
 import { runIngest } from "./ingest.ts";
 import { SdkSessionManager } from "./sessions.ts";
 import type { RelayConfig } from "./config.ts";
@@ -51,6 +52,33 @@ const TOOLS = [
         language: { type: "string", default: "en" },
         diarize: { type: "boolean", default: true },
         model: { type: "string", description: "whisper model, default relay WHISPER_MODEL" },
+      },
+    },
+  },
+  {
+    name: "voice_exec",
+    description: "Voice input end to end: transcribe spoken audio locally with whisper, then run the transcript as a `muse exec` prompt on the relay host subscription. Returns transcript plus final text.",
+    inputSchema: {
+      type: "object",
+      required: ["audio"],
+      properties: {
+        audio: {
+          type: "object",
+          required: ["kind", "value"],
+          properties: {
+            kind: { type: "string", enum: ["url", "path", "rss"] },
+            value: { type: "string" },
+            index: { type: "number", description: "RSS episode index, default 0" },
+          },
+        },
+        language: { type: "string", default: "en" },
+        diarize: { type: "boolean", default: true },
+        promptPrefix: { type: "string", description: "Overrides the default 'follow this voice instruction' framing" },
+        workspace: { type: "string" },
+        model: { type: "string" },
+        reasoningEffort: { type: "string" },
+        sessionId: { type: "string" },
+        yolo: { type: "boolean" },
       },
     },
   },
@@ -170,6 +198,33 @@ async function callTool(cfg: RelayConfig, name: string, args: Record<string, unk
         if (e.type === "error") throw new Error(e.message);
       }
       throw new Error("transcription ended without a result");
+    }
+    case "voice_exec": {
+      const audio = args.audio as Record<string, unknown> | undefined;
+      if (!audio || (audio.kind !== "url" && audio.kind !== "path" && audio.kind !== "rss") || typeof audio.value !== "string") {
+        throw new Error("audio must be { kind: url|path|rss, value, index? }");
+      }
+      const str = (v: unknown) => (typeof v === "string" && v !== "" ? v : undefined);
+      const result = await runVoiceCollect(cfg, {
+        source: { kind: audio.kind, value: audio.value, index: typeof audio.index === "number" ? audio.index : undefined },
+        language: typeof args.language === "string" ? args.language : undefined,
+        diarize: args.diarize === false ? false : undefined,
+        promptPrefix: typeof args.promptPrefix === "string" ? args.promptPrefix : undefined,
+        exec: {
+          workspace: str(args.workspace),
+          model: str(args.model),
+          reasoningEffort: str(args.reasoningEffort),
+          sessionId: str(args.sessionId),
+          yolo: args.yolo === true,
+        },
+      }, signal);
+      return textResult(JSON.stringify({
+        transcript: result.transcript.text,
+        speakers: result.transcript.speakers,
+        text: result.text,
+        terminal: result.terminal,
+        exitCode: result.exitCode,
+      }));
     }
     case "ingest_document": {
       const src = args.source as Record<string, unknown> | undefined;

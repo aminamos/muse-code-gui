@@ -3,7 +3,10 @@
     "start": "deno run --allow-net --allow-run --allow-read --allow-write --allow-env src/server.ts",
     "start-remote": "deno task start --allow-remote",
     "mcp-stdio": "deno run --allow-run --allow-read --allow-write --allow-env --allow-net src/mcp-stdio.ts",
-    "check": "deno check src/server.ts src/mcp-stdio.ts tests/*_test.ts",
+    "acp-stdio": "deno run --allow-run --allow-read --allow-write --allow-env --allow-net src/acp-stdio.ts",
+    "cli": "deno run --allow-run --allow-read --allow-write --allow-env --allow-net src/cli.ts",
+    "install-cli": "deno install --global --config deno.json --name museexec --allow-run --allow-read --allow-write --allow-env --allow-net src/cli.ts",
+    "check": "deno check src/server.ts src/mcp-stdio.ts src/acp-stdio.ts src/cli.ts tests/*_test.ts",
     "test": "deno test --allow-run --allow-read --allow-write --allow-env --allow-net tests/",
     "test-unit": "deno test --allow-run --allow-read --allow-write --allow-env tests/parse_test.ts tests/ingest_test.ts"
   },

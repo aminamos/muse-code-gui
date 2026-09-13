@@ -6,6 +6,7 @@ import { sseResponse } from "./events.ts";
 import { auditBinaries, billingMode, formatBinaryAudit, loadConfig, type RelayConfig } from "./config.ts";
 import { handleChatCompletions, handleModels } from "./openai.ts";
 import { runTranscribe, type TranscribeOptions } from "./transcribe.ts";
+import { runVoiceEvents } from "./voice.ts";
 import { runIngest, type IngestSource } from "./ingest.ts";
 import { handleJsonRpc } from "./mcp.ts";
 
@@ -160,6 +161,44 @@ async function handleTranscribe(req: Request, cfg: RelayConfig): Promise<Respons
   return sseResponse(events(), req.signal);
 }
 
+async function handleVoiceExec(req: Request, cfg: RelayConfig): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    return json(400, { error: "invalid JSON body" });
+  }
+  const audio = body.audio as Record<string, unknown> | undefined;
+  if (!audio || (audio.kind !== "url" && audio.kind !== "path" && audio.kind !== "rss") || typeof audio.value !== "string" || audio.value === "") {
+    return json(400, { error: "audio must be { kind: url|path|rss, value, index? }" });
+  }
+  const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+  const workspace = str(body.workspace);
+  if (workspace && !workspaceAllowed(cfg, workspace)) {
+    return json(403, { error: "workspace outside MUSE_GUI_WORKSPACES allowlist" });
+  }
+  return sseResponse(
+    runVoiceEvents(cfg, {
+      source: { kind: audio.kind, value: audio.value, index: typeof audio.index === "number" ? audio.index : undefined },
+      language: typeof body.language === "string" ? body.language : undefined,
+      diarize: body.diarize === false ? false : undefined,
+      transcribeModel: str(body.transcribeModel),
+      promptPrefix: str(body.promptPrefix),
+      exec: {
+        workspace,
+        model: str(body.model),
+        reasoningEffort: str(body.reasoningEffort),
+        approvalMode: str(body.approvalMode),
+        sessionId: str(body.sessionId),
+        provider: str(body.provider),
+        yolo: body.yolo === true,
+        maxModelSteps: typeof body.maxModelSteps === "number" ? body.maxModelSteps : undefined,
+      },
+    }, req.signal),
+    req.signal,
+  );
+}
+
 async function handleIngest(req: Request, cfg: RelayConfig): Promise<Response> {
   const contentType = req.headers.get("Content-Type") ?? "";
   let src: IngestSource;
@@ -227,6 +266,7 @@ function router(cfg: RelayConfig) {
       if (req.method === "GET" && url.pathname === "/api/health") return await handleHealth(cfg);
       if (req.method === "POST" && url.pathname === "/api/exec") return await handleExec(req, cfg);
       if (req.method === "POST" && url.pathname === "/api/transcribe") return await handleTranscribe(req, cfg);
+      if (req.method === "POST" && url.pathname === "/api/voice_exec") return await handleVoiceExec(req, cfg);
       if (req.method === "POST" && url.pathname === "/api/ingest") return await handleIngest(req, cfg);
       if (req.method === "GET" && url.pathname === "/v1/models") return handleModels();
       if (url.pathname === "/v1/chat/completions") return await handleChatCompletions(req, cfg);
