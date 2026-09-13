@@ -6,7 +6,10 @@
 import { runMuseExec } from "./muse.ts";
 import { runTranscribe, parseRssEpisodes } from "./transcribe.ts";
 import { runIngest } from "./ingest.ts";
+import { SdkSessionManager } from "./sessions.ts";
 import type { RelayConfig } from "./config.ts";
+import type { UiEvent } from "./events.ts";
+import type { ExecOptions } from "./muse.ts";
 
 const SERVER_INFO = { name: "muse-code-ui-relay", version: "0.1.0" };
 const SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
@@ -24,7 +27,7 @@ const TOOLS = [
         model: { type: "string" },
         reasoningEffort: { type: "string" },
         approvalMode: { type: "string" },
-        sessionId: { type: "string" },
+        sessionId: { type: "string", description: "Conversation key: same id continues the managed session" },
         yolo: { type: "boolean" },
       },
     },
@@ -88,6 +91,34 @@ function textResult(text: string) {
   return { content: [{ type: "text", text }] };
 }
 
+let sessionManager: SdkSessionManager | null = null;
+const managedSessions = new Map<string, string>(); // client sessionId -> server sessionId
+
+async function* sendOnManagedSession(
+  cfg: RelayConfig,
+  key: string,
+  opts: ExecOptions,
+  signal: AbortSignal,
+): AsyncGenerator<UiEvent> {
+  try {
+    sessionManager ??= new SdkSessionManager({ museBin: cfg.museBin });
+    let serverId = managedSessions.get(key);
+    if (!serverId) {
+      serverId = (await sessionManager.start(opts.workspace ? { workspaceRoot: opts.workspace } : {})).sessionId;
+      managedSessions.set(key, serverId);
+    }
+    yield* sessionManager.send({ sessionId: serverId, prompt: opts.prompt, signal });
+  } catch (err) {
+    managedSessions.delete(key);
+    yield {
+      type: "log",
+      stream: "info",
+      text: `managed session failed, one-shot fallback: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300),
+    };
+    yield* runMuseExec(cfg.museBin, { ...opts, sessionId: undefined }, signal);
+  }
+}
+
 async function callTool(cfg: RelayConfig, name: string, args: Record<string, unknown>, signal: AbortSignal): Promise<unknown> {
   switch (name) {
     case "muse_exec": {
@@ -97,17 +128,19 @@ async function callTool(cfg: RelayConfig, name: string, args: Record<string, unk
       let terminal = "";
       let exitCode = 0;
       const logs: string[] = [];
-      for await (
-        const e of runMuseExec(cfg.museBin, {
-          prompt: args.prompt,
-          workspace: str(args.workspace),
-          model: str(args.model),
-          reasoningEffort: str(args.reasoningEffort),
-          approvalMode: str(args.approvalMode),
-          sessionId: str(args.sessionId),
-          yolo: args.yolo === true,
-        }, signal)
-      ) {
+      const sessionKey = str(args.sessionId);
+      const execOpts: ExecOptions = {
+        prompt: args.prompt,
+        workspace: str(args.workspace),
+        model: str(args.model),
+        reasoningEffort: str(args.reasoningEffort),
+        approvalMode: str(args.approvalMode),
+        yolo: args.yolo === true,
+      };
+      const events = sessionKey
+        ? sendOnManagedSession(cfg, sessionKey, execOpts, signal)
+        : runMuseExec(cfg.museBin, execOpts, signal);
+      for await (const e of events) {
         if (e.type === "delta") {
           text += e.text;
           if (text.length > 200_000) text = text.slice(0, 200_000);

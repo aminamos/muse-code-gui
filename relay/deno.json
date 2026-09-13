@@ -9,6 +9,7 @@
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.0",
-    "@std/path": "jsr:@std/path@^1.0.0"
+    "@std/path": "jsr:@std/path@^1.0.0",
+    "@muse-code/sdk": "npm:@muse-code/sdk@0.1.1"
   }
 }

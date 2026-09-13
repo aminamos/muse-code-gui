@@ -2,7 +2,8 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@1": "1.0.19",
-    "jsr:@std/internal@^1.0.12": "1.0.14"
+    "jsr:@std/internal@^1.0.12": "1.0.14",
+    "npm:@muse-code/sdk@0.1.1": "0.1.1"
   },
   "jsr": {
     "@std/assert@1.0.19": {
@@ -15,10 +16,16 @@
       "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
     }
   },
+  "npm": {
+    "@muse-code/sdk@0.1.1": {
+      "integrity": "sha512-kis3zolvwlExDeX9F1f3KVSSdCWTgF2TdbGcMJIb0HGkQNrX+qTmel6U9sC9ylHtFizxqOZ/yxGv1cvbcRywiQ=="
+    }
+  },
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
-      "jsr:@std/path@1"
+      "jsr:@std/path@1",
+      "npm:@muse-code/sdk@0.1.1"
     ]
   }
 }

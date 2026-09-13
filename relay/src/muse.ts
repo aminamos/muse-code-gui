@@ -3,6 +3,7 @@
 // never passes an API key.
 
 import type { UiEvent } from "./events.ts";
+import { runSdkExec } from "./muse-sdk.ts";
 
 export interface ExecOptions {
   prompt: string;
@@ -141,7 +142,7 @@ async function* linesOf(stream: ReadableStream<Uint8Array>): AsyncGenerator<stri
   }
 }
 
-export async function* runMuseExec(
+export async function* runExecSubprocess(
   museBin: string,
   opts: ExecOptions,
   signal: AbortSignal,
@@ -245,4 +246,28 @@ export async function* runMuseExec(
   } else {
     yield { type: "error", message: `muse exec exited ${status.code} without a terminal event` };
   }
+}
+
+// Engine selection: SDK first, `muse exec` subprocess as fallback.
+// MUSE_UI_ENGINE=exec forces the subprocess (escape hatch). Note: if the SDK
+// throws after yielding started{}, the consumer sees two started events
+// (SDK runId, then fallback runId); clients treat started as idempotent.
+export async function* runMuseExec(
+  museBin: string,
+  opts: ExecOptions,
+  signal: AbortSignal,
+): AsyncGenerator<UiEvent> {
+  if (Deno.env.get("MUSE_UI_ENGINE") !== "exec") {
+    try {
+      yield* runSdkExec(museBin, opts, signal);
+      return;
+    } catch (err) {
+      yield {
+        type: "log",
+        stream: "info",
+        text: `sdk engine failed, falling back to exec: ${err instanceof Error ? err.message : String(err)}`.slice(0, 300),
+      };
+    }
+  }
+  yield* runExecSubprocess(museBin, opts, signal);
 }
