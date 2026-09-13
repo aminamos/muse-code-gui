@@ -1,5 +1,5 @@
 {
-  "name": "muse-code-ui-ios",
+  "name": "muse-code-gui-ios",
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {

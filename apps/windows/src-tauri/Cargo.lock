@@ -1846,7 +1846,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "muse-code-ui-windows"
+name = "muse-code-gui-windows"
 version = "0.1.0"
 dependencies = [
  "serde",

@@ -1,6 +1,6 @@
 # Architecture (frozen)
 
-Project root: `/Users/amin/development/muse-code-ui`.
+Project root: `/Users/amin/development/muse-code-gui`.
 Per-platform apps live in `apps/windows`, `apps/macos`, `apps/ios`,
 `apps/android`. Shared frozen inputs (`docs/`, `testdata/`) are read-only.
 

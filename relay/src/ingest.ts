@@ -4,6 +4,11 @@
 
 import type { RelayConfig } from "./config.ts";
 
+/** Basename across POSIX/Windows separators (drive letters pass through). Pure. */
+export function basenameCrossPlatform(p: string): string {
+  return p.split(/[\\/]/).pop() ?? p;
+}
+
 export interface IngestSource {
   kind: "text" | "path" | "url";
   value: string;
@@ -83,7 +88,7 @@ export async function runIngest(cfg: RelayConfig, src: IngestSource, signal: Abo
   } else if (src.kind === "path") {
     const st = await Deno.stat(src.value);
     if (!st.isFile || (st.size ?? 0) > MAX_DOC_BYTES) throw new Error("path is not a file or exceeds 100 MiB");
-    name = src.filename ?? src.value.split("/").pop() ?? name;
+    name = src.filename ?? basenameCrossPlatform(src.value) ?? name;
     bytes = await Deno.readFile(src.value);
   } else {
     const url = new URL(src.value);

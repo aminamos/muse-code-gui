@@ -1,11 +1,12 @@
 // MCP over stdio: newline-delimited JSON-RPC 2.0. One response line per
 // request line; notifications produce no output. Logs go to stderr only.
 
-import { billingMode, loadConfig } from "./config.ts";
+import { billingMode, formatBinaryAudit, loadConfig } from "./config.ts";
 import { handleJsonRpc } from "./mcp.ts";
 
 async function main(): Promise<void> {
   const cfg = loadConfig([]);
+  console.error(`binaries: ${formatBinaryAudit(cfg)}`);
   if (billingMode() === "api_key") console.error("API-credit env detected (META_API_KEY/MUSE_API_TOKEN): muse will bill API credits, not the subscription login");
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Speaker-diarization helper for the muse-code-ui relay.
+"""Speaker-diarization helper for the muse-code-gui relay.
 
 Contract (docs/TRANSCRIBE.md, relay/src/transcribe.ts diarize stage):
   argv[1] = path to a 16 kHz mono wav file

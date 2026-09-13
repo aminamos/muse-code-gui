@@ -13,6 +13,7 @@ import {
   type TranscribeEvent,
   type TranscriptSegment,
 } from "./lib/transcribeEvents";
+import Chat from "./components/Chat";
 import "./index.css";
 
 interface LogLine {
@@ -221,7 +222,7 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Muse Code UI</h1>
+        <h1>Muse Code GUI</h1>
         <span className="platform">Windows · Tauri</span>
       </header>
 
@@ -267,6 +268,15 @@ export default function App() {
           </p>
         )}
         {healthError !== "" && <p className="error">health: {healthError}</p>}
+      </section>
+
+      <section className="chat-panel">
+        <h2>Chat</h2>
+        <Chat
+          relayUrl={relayUrl}
+          token={token}
+          defaultRelayUrl={DEFAULT_RELAY_URL}
+        />
       </section>
 
       <section className="prompt">

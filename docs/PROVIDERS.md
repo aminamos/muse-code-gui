@@ -16,23 +16,23 @@ credentials are invisible to that check).
   `deno run --allow-run --allow-read --allow-write --allow-env --allow-net
   --config <repo>/relay/deno.json <repo>/relay/src/mcp-stdio.ts`
 - Relay must be running for provider + HTTP use:
-  `MUSE_UI_RELAY_TOKEN=<token> deno task start` (cwd `relay/`).
+  `MUSE_GUI_RELAY_TOKEN=<token> deno task start` (cwd `relay/`).
   Harnesses reference the token by env NAME, never by value.
 
 ## OMP (`~/.omp/agent/`)
 
-- Provider id is `mcu-relay`, NOT `muse-code`: OMP v18.1.19 reserves
+- Provider id is `mcg-relay`, NOT `muse-code`: OMP v18.1.19 reserves
   `muse-code` for native Muse auth and fails closed with "Muse Code
   credential is invalid" without calling the relay (verified via
-  binary strings + renamed-provider success). Model: `mcu-relay/muse-code`.
+  binary strings + renamed-provider success). Model: `mcg-relay/muse-code`.
 - Entry in `models.yml` (`openai-completions`, baseUrl relay `/v1`,
-  apiKey `MUSE_UI_RELAY_TOKEN`, authHeader). MCP entry in `mcp.json`.
-- Verified: `omp models mcu-relay` lists it; live `say hi` turn exit 0.
+  apiKey `MUSE_GUI_RELAY_TOKEN`, authHeader). MCP entry in `mcp.json`.
+- Verified: `omp models mcg-relay` lists it; live `say hi` turn exit 0.
 
 ## OpenCode (`~/.config/opencode/opencode.jsonc`)
 
 - Provider `muse-code` (`@ai-sdk/openai-compatible`, relay `/v1`,
-  apiKey `{env:MUSE_UI_RELAY_TOKEN}`), model `muse-code/muse-code`.
+  apiKey `{env:MUSE_GUI_RELAY_TOKEN}`), model `muse-code/muse-code`.
   MCP `muse-code` local stdio entry (shape per opencode.ai/config.json).
 - Verified: parse OK, `opencode debug config` resolves both,
   `opencode mcp list` CONNECTED, live `say hi` turn exit 0 ("Hi!").
@@ -48,7 +48,7 @@ credentials are invisible to that check).
 ## Command Code (`~/.commandcode/`)
 
 - Provider `muse-code` in `providers.json` (BYOK: relay `/v1`,
-  apiKey `$MUSE_UI_RELAY_TOKEN`), model `muse-code/muse-code`.
+  apiKey `$MUSE_GUI_RELAY_TOKEN`), model `muse-code/muse-code`.
   MCP `muse-code` stdio in `mcp.json` (via `cmd mcp add --scope user`).
 - Verified: `cmd mcp list` shows muse-code enabled;
   `cmd --list-models` shows `muse-code/muse-code` under "Muse Code (byok)".
@@ -59,4 +59,4 @@ credentials are invisible to that check).
 MCP stdio works anywhere a harness accepts a command-based server
 (same deno line, no token). A model-provider entry needs
 OpenAI-compat baseURL + Bearer token fields pointed at the relay's
-`/v1` with `MUSE_UI_RELAY_TOKEN`, plus a live `say hi` to prove it.
+`/v1` with `MUSE_GUI_RELAY_TOKEN`, plus a live `say hi` to prove it.

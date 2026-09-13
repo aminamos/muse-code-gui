@@ -164,7 +164,7 @@ export function handleModels(): Response {
         id: OPENAI_MODEL_ID,
         object: "model",
         created: 0,
-        owned_by: "muse-code-ui-relay",
+        owned_by: "muse-code-gui-relay",
       }],
     }),
     { status: 200, headers: { "Content-Type": "application/json" } },

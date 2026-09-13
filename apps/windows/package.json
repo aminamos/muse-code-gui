@@ -1,5 +1,5 @@
 {
-  "name": "muse-code-ui-windows",
+  "name": "muse-code-gui-windows",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -8,7 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "smoke": "node ./scripts/smoke.mjs",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "tauri:build": "tauri build",
+    "tauri:build:windows": "tauri build --bundles nsis msi",
+    "tauri:build:macos": "tauri build --bundles app dmg",
+    "tauri:build:linux": "tauri build --bundles deb appimage",
+    "tauri:icon": "tauri icon assets/icon.svg"
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",

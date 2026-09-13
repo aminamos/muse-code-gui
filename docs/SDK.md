@@ -6,7 +6,7 @@ The relay drives `muse` two ways. Engine selection lives in
 - Default: SDK first (`muse serve` via `MuseClient`), `muse exec`
   subprocess as fallback. A fallback emits an info log line; consumers
   may see two `started` events (SDK runId, then fallback runId).
-- `MUSE_UI_ENGINE=exec` forces the subprocess (escape hatch).
+- `MUSE_GUI_ENGINE=exec` forces the subprocess (escape hatch).
 
 ## What the SDK replaced
 
@@ -42,4 +42,4 @@ The relay drives `muse` two ways. Engine selection lives in
 ## Verify
 
 `deno task check && deno task test` (includes live SDK turns).
-Force the legacy path: `MUSE_UI_ENGINE=exec deno task test`.
+Force the legacy path: `MUSE_GUI_ENGINE=exec deno task test`.

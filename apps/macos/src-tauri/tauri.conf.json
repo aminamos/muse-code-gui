@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Muse Code UI",
+  "productName": "Muse Code GUI",
   "version": "0.1.0",
-  "identifier": "com.musecode.ui.macos",
+  "identifier": "com.musecode.gui.macos",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Muse Code UI",
+        "title": "Muse Code GUI",
         "width": 900,
         "height": 720,
         "minWidth": 640,
@@ -25,7 +25,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg"],
+    "targets": ["app", "dmg"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

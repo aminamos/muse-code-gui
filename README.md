@@ -11,17 +11,17 @@
 <br />
 <div align="center">
 
-  <h3 align="center">muse-exec-gui</h3>
+  <h3 align="center">muse-code-gui</h3>
 
   <p align="center">
     Graphical frontends for Muse Code that run on your subscription — Windows, macOS, iOS, Android.
     <br />
-    <a href="https://github.com/aminamos/muse-exec-gui/tree/main/docs"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/aminamos/muse-code-gui/tree/main/docs"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/aminamos/muse-exec-gui/issues/new?labels=bug">Report Bug</a>
+    <a href="https://github.com/aminamos/muse-code-gui/issues/new?labels=bug">Report Bug</a>
     &middot;
-    <a href="https://github.com/aminamos/muse-exec-gui/issues/new?labels=enhancement">Request Feature</a>
+    <a href="https://github.com/aminamos/muse-code-gui/issues/new?labels=enhancement">Request Feature</a>
   </p>
 </div>
 
@@ -96,12 +96,12 @@ To get a local copy up and running, start the relay, then open any app.
 
 1. Clone the repo
    ```sh
-   git clone https://github.com/aminamos/muse-exec-gui.git
-   cd muse-exec-gui
+   git clone https://github.com/aminamos/muse-code-gui.git
+   cd muse-code-gui
    ```
 2. Generate a relay token and export it (any random string)
    ```sh
-   export MUSE_UI_RELAY_TOKEN="$(openssl rand -hex 32)"
+   export MUSE_GUI_RELAY_TOKEN="$(openssl rand -hex 32)"
    ```
 3. Start the relay
    ```sh
@@ -149,7 +149,7 @@ _Full references: [docs/PROVIDERS.md](docs/PROVIDERS.md) (per-harness entries),
 - [ ] EAS / TestFlight submission
 - [ ] Per-harness installer repos (`muse-opencode`, `muse-omp`, …)
 
-See the [open issues](https://github.com/aminamos/muse-exec-gui/issues) for a full list of proposed features (and known issues).
+See the [open issues](https://github.com/aminamos/muse-code-gui/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -184,8 +184,8 @@ cd ../macos && npm install && npx tsc --noEmit && npm run build && npm run smoke
 
 ### Top contributors:
 
-<a href="https://github.com/aminamos/muse-exec-gui/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=aminamos/muse-exec-gui" alt="contrib.rocks image" />
+<a href="https://github.com/aminamos/muse-code-gui/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=aminamos/muse-code-gui" alt="contrib.rocks image" />
 </a>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -193,7 +193,7 @@ cd ../macos && npm install && npx tsc --noEmit && npm run build && npm run smoke
 <!-- CONTACT -->
 ## Contact
 
-Project Link: [https://github.com/aminamos/muse-exec-gui](https://github.com/aminamos/muse-exec-gui)
+Project Link: [https://github.com/aminamos/muse-code-gui](https://github.com/aminamos/muse-code-gui)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -217,15 +217,15 @@ Give your agent this repo link plus everything below the line.
 
 ---
 
-Set up muse-exec-gui (Muse subscription only — no API credits):
+Set up muse-code-gui (Muse subscription only — no API credits):
 
-1. Clone https://github.com/aminamos/muse-exec-gui and open `relay/`.
+1. Clone https://github.com/aminamos/muse-code-gui and open `relay/`.
 2. Confirm prerequisites: Deno 2+, Node 20+, and `muse --version` runs.
    Login is proven at step 8 — a credential error there means `muse login`
    is missing, so stop and tell the user to sign in.
-3. Generate a relay token and export it as `MUSE_UI_RELAY_TOKEN`
+3. Generate a relay token and export it as `MUSE_GUI_RELAY_TOKEN`
    (the relay also accepts it as `RELAY_TOKEN`).
-4. Start the relay: `MUSE_UI_RELAY_TOKEN=<token> deno task start`
+4. Start the relay: `MUSE_GUI_RELAY_TOKEN=<token> deno task start`
    (working directory `relay/`). Confirm `GET /api/health` returns
    `ok:true` and `billing:"subscription"`.
 5. If `META_API_KEY` or `MUSE_API_TOKEN` is set anywhere in the
@@ -237,7 +237,7 @@ Set up muse-exec-gui (Muse subscription only — no API credits):
    (replace `<repo>` with the clone path; back up any config first).
 7. If the harness supports OpenAI-compatible providers, add model
    `muse-code` at baseURL `http://127.0.0.1:8787/v1`, referencing the
-   token by env NAME `MUSE_UI_RELAY_TOKEN` (never paste the value).
+   token by env NAME `MUSE_GUI_RELAY_TOKEN` (never paste the value).
    The relay must be running for provider calls.
 8. Prove it: one tiny turn ("say hi") through the new provider, or the
    harness's provider/MCP list command. Report what was spent.
@@ -249,14 +249,14 @@ Set up muse-exec-gui (Muse subscription only — no API credits):
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/aminamos/muse-exec-gui.svg?style=for-the-badge
-[contributors-url]: https://github.com/aminamos/muse-exec-gui/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/aminamos/muse-exec-gui.svg?style=for-the-badge
-[forks-url]: https://github.com/aminamos/muse-exec-gui/network/members
-[stars-shield]: https://img.shields.io/github/stars/aminamos/muse-exec-gui.svg?style=for-the-badge
-[stars-url]: https://github.com/aminamos/muse-exec-gui/stargazers
-[issues-shield]: https://img.shields.io/github/issues/aminamos/muse-exec-gui.svg?style=for-the-badge
-[issues-url]: https://github.com/aminamos/muse-exec-gui/issues
+[contributors-shield]: https://img.shields.io/github/contributors/aminamos/muse-code-gui.svg?style=for-the-badge
+[contributors-url]: https://github.com/aminamos/muse-code-gui/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/aminamos/muse-code-gui.svg?style=for-the-badge
+[forks-url]: https://github.com/aminamos/muse-code-gui/network/members
+[stars-shield]: https://img.shields.io/github/stars/aminamos/muse-code-gui.svg?style=for-the-badge
+[stars-url]: https://github.com/aminamos/muse-code-gui/stargazers
+[issues-shield]: https://img.shields.io/github/issues/aminamos/muse-code-gui.svg?style=for-the-badge
+[issues-url]: https://github.com/aminamos/muse-code-gui/issues
 [Deno.com]: https://img.shields.io/badge/Deno-000000?style=for-the-badge&logo=deno&logoColor=white
 [Deno-url]: https://deno.com/
 [React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB

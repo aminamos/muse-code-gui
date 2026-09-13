@@ -1,7 +1,7 @@
 [package]
-name = "muse-code-ui-windows"
+name = "muse-code-gui-windows"
 version = "0.1.0"
-description = "Muse Code UI (Windows desktop shell)"
+description = "Muse Code GUI (Windows desktop shell)"
 edition = "2021"
 
 [build-dependencies]

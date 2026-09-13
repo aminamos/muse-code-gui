@@ -13,6 +13,7 @@ import type {
   TranscriptSegment,
 } from "./events.ts";
 import type { RelayConfig } from "./config.ts";
+import { deriveFfprobe, missingBinaryError } from "./config.ts";
 
 export type AudioSourceKind = "url" | "path" | "rss";
 
@@ -195,8 +196,63 @@ async function downloadToFile(url: string, dir: string, signal: AbortSignal): Pr
   return dest;
 }
 
-async function probeDuration(ffmpegBin: string, file: string, signal: AbortSignal): Promise<number | null> {
-  const ffprobe = ffmpegBin.replace(/ffmpeg$/, "ffprobe");
+/** True when a spawn throw looks like a missing binary (cross-OS). Pure. */
+export function isSpawnNotFound(err: unknown): boolean {
+  if (err instanceof Deno.errors.NotFound) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /not found|no such file|ENOENT|cannot find the file/i.test(msg);
+}
+
+/**
+ * Windows-safe diarizer invocation list. Never relies on shebang/exec-bit:
+ * try direct first (POSIX fast path, unchanged), then the helper through
+ * python3, then python. Pure for unit testing.
+ */
+export function buildDiarizerCommands(
+  helper: string,
+  wav: string,
+): Array<{ bin: string; args: string[] }> {
+  return [
+    { bin: helper, args: [wav] },
+    { bin: "python3", args: [helper, wav] },
+    { bin: "python", args: [helper, wav] },
+  ];
+}
+
+/**
+ * Run the diarizer, falling through interpreter candidates when direct exec
+ * throws (shebang/exec-bit on Windows, missing exec bit on POSIX). A spawned
+ * process that exits non-zero is returned as-is (caller falls back to
+ * single-speaker); only spawn throws advance to the next candidate.
+ */
+export async function runDiarizer(
+  helper: string,
+  wav: string,
+  signal: AbortSignal,
+): Promise<{ code: number; stdout: string; stderr: string; used: string }> {
+  const candidates = buildDiarizerCommands(helper, wav);
+  let lastErr: unknown = null;
+  for (const c of candidates) {
+    try {
+      const r = await runCmd(c.bin, c.args, signal);
+      return { ...r, used: c.bin === helper ? "direct" : c.bin };
+    } catch (err) {
+      lastErr = err;
+      if (signal.aborted) throw err;
+      continue;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+async function probeDuration(
+  ffmpegBin: string | null,
+  ffprobeBin: string | null,
+  file: string,
+  signal: AbortSignal,
+): Promise<number | null> {
+  const ffprobe = ffprobeBin ?? (ffmpegBin ? deriveFfprobe(ffmpegBin) : null);
+  if (!ffprobe) return null;
   try {
     const out = await runCmd(ffprobe, ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", file], signal);
     const v = Number.parseFloat(out.stdout.trim());
@@ -247,16 +303,30 @@ export async function* runTranscribe(
       input = await downloadToFile(ep.audioUrl, tmp, signal);
     }
     if (signal.aborted) return;
+    if (!cfg.ffmpegBin) throw missingBinaryError("ffmpeg");
+    if (!cfg.whisperBin) throw missingBinaryError("whisper");
     yield { type: "progress", stage: "decode", detail: "ffmpeg 16k mono wav" };
     const wav = `${tmp}/audio.wav`;
-    const duration = await probeDuration(cfg.ffmpegBin, input, signal);
-    const dec = await runCmd(cfg.ffmpegBin, ["-y", "-v", "error", "-i", input, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", wav], signal);
+    const duration = await probeDuration(cfg.ffmpegBin, cfg.ffprobeBin, input, signal);
+    let dec: { code: number; stdout: string; stderr: string };
+    try {
+      dec = await runCmd(cfg.ffmpegBin, ["-y", "-v", "error", "-i", input, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", wav], signal);
+    } catch (err) {
+      if (isSpawnNotFound(err)) throw missingBinaryError("ffmpeg");
+      throw err;
+    }
     if (dec.code !== 0) throw new Error(`ffmpeg decode failed: ${dec.stderr.slice(0, 400)}`);
     if (signal.aborted) return;
     const model = opts.model ?? cfg.whisperModel;
     const language = opts.language ?? "en";
     yield { type: "progress", stage: "transcribe", detail: `whisper ${model} lang=${language}` };
-    const w = await runCmd(cfg.whisperBin, [wav, "--model", model, "--language", language, "--output_format", "json", "--output_dir", tmp, "--fp16", "False", "--verbose", "False"], signal);
+    let w: { code: number; stdout: string; stderr: string };
+    try {
+      w = await runCmd(cfg.whisperBin, [wav, "--model", model, "--language", language, "--output_format", "json", "--output_dir", tmp, "--fp16", "False", "--verbose", "False"], signal);
+    } catch (err) {
+      if (isSpawnNotFound(err)) throw missingBinaryError("whisper");
+      throw err;
+    }
     for (const line of `${w.stdout}\n${w.stderr}`.split("\n").map((l) => l.trim()).filter(Boolean).slice(0, 60)) {
       yield { type: "log", stream: "info", text: line.slice(0, 300) };
     }
@@ -268,16 +338,23 @@ export async function* runTranscribe(
     let diarization: TranscriptResult["diarization"] = "none";
     if (opts.diarize !== false && cfg.diarizeHelper) {
       yield { type: "progress", stage: "diarize", detail: cfg.diarizeHelper };
-      const d = await runCmd(cfg.diarizeHelper, [wav], signal);
-      if (d.code === 0) {
-        try {
-          turns = parseDiarTurns(JSON.parse(d.stdout));
-          if (turns) diarization = "external";
-        } catch {
-          turns = null;
+      try {
+        const d = await runDiarizer(cfg.diarizeHelper, wav, signal);
+        if (d.used !== "direct") {
+          yield { type: "log", stream: "info", text: `diarizer direct exec failed, ran via ${d.used} (${Deno.build.os})` };
         }
+        if (d.code === 0) {
+          try {
+            turns = parseDiarTurns(JSON.parse(d.stdout));
+            if (turns) diarization = "external";
+          } catch {
+            turns = null;
+          }
+        }
+        if (!turns) yield { type: "log", stream: "stderr", text: `diarizer failed, single-speaker fallback: ${d.stderr.slice(0, 300)}` };
+      } catch (err) {
+        yield { type: "log", stream: "stderr", text: `diarizer failed (direct + python3 + python), single-speaker fallback: ${(err instanceof Error ? err.message : String(err)).slice(0, 300)}` };
       }
-      if (!turns) yield { type: "log", stream: "stderr", text: `diarizer failed, single-speaker fallback: ${d.stderr.slice(0, 300)}` };
     } else if (opts.diarize !== false) {
       yield { type: "log", stream: "info", text: "no diarizer configured (DIARIZE_HELPER), single-speaker fallback" };
     }

@@ -1,4 +1,4 @@
-# Muse Code UI — Windows
+# Muse Code GUI — Windows
 
 Tauri v2 desktop-only shell + React + Vite + TypeScript exec-runner UI.
 

@@ -125,3 +125,79 @@ button:disabled {
   font-family: Consolas, "Cascadia Mono", monospace;
   font-size: 13px;
 }
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.chat-msg {
+  background: #141417;
+  border: 1px solid #33333d;
+  border-left-width: 3px;
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.chat-msg.user {
+  border-left-color: #0f6cbd;
+}
+
+.chat-msg.assistant {
+  border-left-color: #6b6b76;
+}
+
+.chat-role {
+  font-size: 12px;
+  color: #9a9aa5;
+  margin-bottom: 4px;
+}
+
+.chat-text {
+  font-size: 13px;
+  word-break: break-word;
+}
+
+.chat-text code {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+  background: #0e0e11;
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.chat-text pre.chat-code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #0e0e11;
+  border: 1px solid #33333d;
+  border-radius: 4px;
+  padding: 8px;
+  overflow-x: auto;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+}
+
+.chat-empty,
+.chat-hint,
+.chat-note {
+  font-size: 13px;
+  color: #9a9aa5;
+}
+
+.chat-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #f0888f;
+  margin-bottom: 8px;
+}
+
+.chat-form textarea {
+  margin-top: 0;
+}

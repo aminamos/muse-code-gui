@@ -29,7 +29,7 @@ dependency) and is already on PATH here. `diarize.py` reads `HF_TOKEN`.
 ## 4. Install the pinned dependencies
 
 ```sh
-cd /Users/amin/development/muse-code-ui
+cd /Users/amin/development/muse-code-gui
 python3 -m venv relay/scripts/pyannote/.venv
 relay/scripts/pyannote/.venv/bin/python -m pip install -r relay/scripts/pyannote/requirements.txt
 ```
@@ -53,8 +53,8 @@ Any failure prints `diarize.py: error: ...` on stderr with nonzero exit.
 ## 6. Wire the relay to the helper
 
 ```sh
-chmod +x /Users/amin/development/muse-code-ui/relay/scripts/pyannote/diarize.py
-export DIARIZE_HELPER="/Users/amin/development/muse-code-ui/relay/scripts/pyannote/diarize.py"
+chmod +x /Users/amin/development/muse-code-gui/relay/scripts/pyannote/diarize.py
+export DIARIZE_HELPER="/Users/amin/development/muse-code-gui/relay/scripts/pyannote/diarize.py"
 ```
 
 `DIARIZE_HELPER` must be executable and take the wav path as its only

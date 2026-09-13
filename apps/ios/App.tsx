@@ -1,5 +1,5 @@
 /**
- * muse-code-ui (iOS): exec-runner UI against a remote relay.
+ * muse-code-gui (iOS): exec-runner UI against a remote relay.
  *
  * Remote-relay-only: runs stream from POST {relayUrl}/api/exec as SSE UI
  * events (docs/EXEC-CONTRACT.md). Auth is the relay bearer token entered
@@ -20,6 +20,7 @@ import {
 
 import * as DocumentPicker from 'expo-document-picker';
 
+import { ChatScreen } from './src/ChatScreen';
 import { checkHealth, streamExec } from './src/relayClient';
 import {
   formatTimestamp,
@@ -46,6 +47,7 @@ let logId = 0;
 export default function App() {
   const [settings, setSettings] = useState<ExecSettings>(DEFAULT_SETTINGS);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [mode, setMode] = useState<'chat' | 'run' | 'transcribe'>('chat');
   const [prompt, setPrompt] = useState('');
   const [output, setOutput] = useState('');
   const [logs, setLogs] = useState<LogLine[]>([]);
@@ -306,13 +308,22 @@ export default function App() {
     }
   }, [settings.relayToken, settings.relayUrl]);
 
-  return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="auto" />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>muse-code-ui · iOS (remote relay)</Text>
+  const header = (
+    <>
+      <Text style={styles.title}>muse-code-gui · iOS (remote relay)</Text>
+      <View style={styles.row}>
+        {(['chat', 'run', 'transcribe'] as const).map((m) => (
+          <View key={m} style={styles.button}>
+            <Button
+              title={mode === m ? `● ${m}` : m}
+              onPress={() => setMode(m)}
+              disabled={mode === m}
+            />
+          </View>
+        ))}
+      </View>
 
-        <Text style={styles.heading}>Settings</Text>
+      <Text style={styles.heading}>Settings</Text>
         <Text style={styles.label}>Relay URL</Text>
         <TextInput
           style={styles.input}
@@ -341,7 +352,33 @@ export default function App() {
           <Button title="Check health" onPress={onCheckHealth} />
         </View>
         {health !== null && <Text style={styles.health}>{health}</Text>}
+      </>
+  );
 
+  if (mode === 'chat') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <StatusBar style="auto" />
+        <View style={styles.chatMode}>
+          {header}
+          <View style={styles.chatFill}>
+            <ChatScreen
+              relayUrl={settings.relayUrl}
+              relayToken={settings.relayToken}
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <StatusBar style="auto" />
+      <ScrollView contentContainerStyle={styles.container}>
+        {header}
+        {mode === 'run' ? (
+          <>
         <Text style={styles.heading}>Prompt</Text>
         <TextInput
           style={[styles.input, styles.prompt]}
@@ -378,7 +415,9 @@ export default function App() {
             ))
           )}
         </ScrollView>
-
+          </>
+        ) : (
+          <>
         <Text style={styles.heading}>Transcribe</Text>
         <View style={styles.row}>
           <View style={styles.button}>
@@ -479,6 +518,8 @@ export default function App() {
             ))
           )}
         </ScrollView>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -492,6 +533,14 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 48,
+  },
+  chatMode: {
+    flex: 1,
+    padding: 16,
+  },
+  chatFill: {
+    flex: 1,
+    marginTop: 8,
   },
   title: {
     fontSize: 18,

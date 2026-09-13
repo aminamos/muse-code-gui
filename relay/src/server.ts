@@ -3,7 +3,7 @@
 
 import { getMuseVersion, runMuseExec, type ExecOptions } from "./muse.ts";
 import { sseResponse } from "./events.ts";
-import { billingMode, loadConfig, type RelayConfig } from "./config.ts";
+import { auditBinaries, billingMode, formatBinaryAudit, loadConfig, type RelayConfig } from "./config.ts";
 import { handleChatCompletions, handleModels } from "./openai.ts";
 import { runTranscribe, type TranscribeOptions } from "./transcribe.ts";
 import { runIngest, type IngestSource } from "./ingest.ts";
@@ -23,11 +23,22 @@ function checkAuth(req: Request, cfg: RelayConfig): boolean {
   return token !== "" && token === cfg.token;
 }
 
-function workspaceAllowed(cfg: RelayConfig, workspace: string): boolean {
+function normalizeWorkspacePath(p: string, os: string): string {
+  let n = p.replace(/\\/g, "/");
+  // Strip trailing slashes (but keep bare drive root like C:/).
+  while (n.length > 1 && n.endsWith("/") && !/^[a-zA-Z]:\/$/.test(n)) n = n.slice(0, -1);
+  if (os === "windows") n = n.toLowerCase();
+  return n;
+}
+
+export function workspaceAllowed(cfg: RelayConfig, workspace: string, os?: string): boolean {
   if (!cfg.workspaceRoots) return true;
-  return cfg.workspaceRoots.some(
-    (root) => workspace === root || workspace.startsWith(root.endsWith("/") ? root : root + "/"),
-  );
+  const o = os ?? Deno.build.os;
+  const ws = normalizeWorkspacePath(workspace, o);
+  return cfg.workspaceRoots.some((root) => {
+    const r = normalizeWorkspacePath(root, o);
+    return ws === r || ws.startsWith(r.endsWith("/") ? r : r + "/");
+  });
 }
 
 async function handleHealth(cfg: RelayConfig): Promise<Response> {
@@ -35,15 +46,18 @@ async function handleHealth(cfg: RelayConfig): Promise<Response> {
     ok: true,
     billing: billingMode(),
     museBin: cfg.museBin,
+    museLauncher: cfg.museLauncher ?? null,
     museVersion: await getMuseVersion(cfg.museBin),
     transcribe: {
       engine: "whisper",
-      whisperBin: cfg.whisperBin,
+      whisperBin: cfg.whisperBin ?? null,
       whisperModel: cfg.whisperModel,
       diarizer: cfg.diarizeHelper ?? null,
-      ffmpegBin: cfg.ffmpegBin,
+      ffmpegBin: cfg.ffmpegBin ?? null,
+      ffprobeBin: cfg.ffprobeBin ?? null,
     },
     ingest: { pdf: cfg.pdftotextBin !== null, epub: cfg.unzipBin !== null },
+    binaries: auditBinaries(cfg),
   });
 }
 
@@ -63,7 +77,7 @@ async function handleExec(req: Request, cfg: RelayConfig): Promise<Response> {
   const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
   const workspace = str(body.workspace);
   if (workspace && !workspaceAllowed(cfg, workspace)) {
-    return json(403, { error: "workspace outside MUSE_UI_WORKSPACES allowlist" });
+    return json(403, { error: "workspace outside MUSE_GUI_WORKSPACES allowlist" });
   }
   const opts: ExecOptions = {
     prompt: body.prompt,
@@ -201,9 +215,12 @@ function router(cfg: RelayConfig) {
 
 if (import.meta.main) {
   const cfg = loadConfig(Deno.args);
-  console.error(`muse-code-ui relay on http://${cfg.bindHost}:${cfg.port}`);
-  console.error(`muse: ${cfg.museBin} whisper: ${cfg.whisperBin} (${cfg.whisperModel}) ffmpeg: ${cfg.ffmpegBin}`);
-  console.error(`diarizer: ${cfg.diarizeHelper ?? "none (single-speaker fallback)"}`);
+  console.error(`muse-code-gui relay on http://${cfg.bindHost}:${cfg.port}`);
+  console.error(`binaries: ${formatBinaryAudit(cfg)}`);
+  console.error(`whisper model: ${cfg.whisperModel}`);
+  if (!cfg.whisperBin) console.error("whisper: missing (transcribe disabled until installed)");
+  if (!cfg.ffmpegBin) console.error("ffmpeg: missing (transcribe disabled until installed)");
+  if (!cfg.diarizeHelper) console.error("diarizer: none (single-speaker fallback)");
   if (cfg.tokenGenerated) console.error(`relay token (generated, this run only): ${cfg.token}`);
   if (billingMode() === "api_key") console.error("API-credit env detected (META_API_KEY/MUSE_API_TOKEN): muse will bill API credits, not the subscription login");
   Deno.serve({ port: cfg.port, hostname: cfg.bindHost }, router(cfg));

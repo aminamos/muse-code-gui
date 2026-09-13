@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "muse-code-ui (android)",
-    "slug": "muse-code-ui-android",
+    "name": "muse-code-gui (android)",
+    "slug": "muse-code-gui-android",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "android": {
-      "package": "com.musecode.ui.android",
+      "package": "com.musecode.gui.android",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",

@@ -11,7 +11,7 @@ import type { RelayConfig } from "./config.ts";
 import type { UiEvent } from "./events.ts";
 import type { ExecOptions } from "./muse.ts";
 
-const SERVER_INFO = { name: "muse-code-ui-relay", version: "0.1.0" };
+const SERVER_INFO = { name: "muse-code-gui-relay", version: "0.1.0" };
 const SUPPORTED_PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const TOOLS = [

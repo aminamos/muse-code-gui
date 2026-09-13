@@ -8,6 +8,7 @@ import {
   type TranscriptSegment,
   type UiEvent,
 } from "./lib/execClient";
+import Chat from "./components/Chat";
 
 const DEFAULT_RELAY_URL = "http://127.0.0.1:8787";
 
@@ -191,7 +192,7 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>Muse Code UI — macOS</h1>
+      <h1>Muse Code GUI — macOS</h1>
 
       <section className="panel">
         <h2>Settings</h2>
@@ -214,6 +215,15 @@ export default function App() {
             autoComplete="off"
           />
         </label>
+      </section>
+
+      <section className="panel">
+        <h2>Chat</h2>
+        <Chat
+          relayUrl={relayUrl}
+          token={token}
+          defaultRelayUrl={DEFAULT_RELAY_URL}
+        />
       </section>
 
       <section className="panel">

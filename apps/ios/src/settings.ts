@@ -18,8 +18,8 @@ export const DEFAULT_SETTINGS: ExecSettings = {
   relayToken: '',
 };
 
-const RELAY_URL_KEY = 'muse-code-ui.relayUrl';
-const RELAY_TOKEN_KEY = 'muse-code-ui.relayToken';
+const RELAY_URL_KEY = 'muse-code-gui.relayUrl';
+const RELAY_TOKEN_KEY = 'muse-code-gui.relayToken';
 
 export async function loadSettings(): Promise<ExecSettings> {
   try {

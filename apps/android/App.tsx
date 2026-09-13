@@ -14,6 +14,7 @@ import type { UIEvent as Event } from "./src/exec/events";
 import type { TranscribeEvent, TranscriptSegment } from "./src/exec/events";
 import { formatTimestamp } from "./src/exec/events";
 import { RelayClient } from "./src/exec/relay";
+import { ChatScreen } from "./src/chat/ChatScreen";
 
 interface LogLine {
   id: number;
@@ -141,7 +142,7 @@ export default function App() {
     }
   };
 
-  const [mode, setMode] = useState<"exec" | "transcribe">("exec");
+  const [mode, setMode] = useState<"chat" | "exec" | "transcribe">("chat");
   const [tKind, setTKind] = useState<"url" | "rss" | "path">("url");
   const [tValue, setTValue] = useState("");
   const [tIndex, setTIndex] = useState("0");
@@ -299,6 +300,9 @@ export default function App() {
 
       <View style={styles.buttons}>
         <View style={styles.button}>
+          <Button title="Chat" onPress={() => setMode("chat")} disabled={mode === "chat"} />
+        </View>
+        <View style={styles.button}>
           <Button title="Exec" onPress={() => setMode("exec")} disabled={mode === "exec"} />
         </View>
         <View style={styles.button}>
@@ -309,7 +313,11 @@ export default function App() {
           />
         </View>
       </View>
-      {mode === "exec" ? (
+      {mode === "chat" ? (
+        <View style={styles.chatFill}>
+          <ChatScreen relayUrl={relayUrl} relayToken={token} />
+        </View>
+      ) : mode === "exec" ? (
         <>
       <View style={styles.section}>
         <Text style={styles.label}>Prompt</Text>
@@ -544,6 +552,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   pane: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  chatFill: {
     flex: 1,
     marginBottom: 8,
   },

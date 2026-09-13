@@ -1,4 +1,4 @@
-# muse-code-ui — Android
+# muse-code-gui — Android
 
 Expo SDK (managed workflow) + TypeScript app. Remote-relay-only: Android
 cannot spawn the `muse` binary, so every run goes to a relay URL (LAN or

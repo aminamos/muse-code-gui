@@ -57,7 +57,7 @@ export class SdkSessionManager {
   ) {
     this.#museBin = opts.museBin;
     // SS1.4.1: clientInfo.name must match ^[a-z0-9_]+$.
-    this.#clientName = opts.clientName ?? "muse_code_ui_relay";
+    this.#clientName = opts.clientName ?? "muse_code_gui_relay";
     this.#clientVersion = opts.clientVersion ?? "0.1.0";
   }
 

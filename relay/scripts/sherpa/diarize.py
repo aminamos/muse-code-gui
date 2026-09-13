@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline multi-speaker diarizer (sherpa-onnx) for the muse-code-ui relay.
+"""Offline multi-speaker diarizer (sherpa-onnx) for the muse-code-gui relay.
 
 Contract (docs/TRANSCRIBE.md): argv[1] is a 16kHz mono wav path; print JSON
 [{start, end, speaker}] on stdout. Invoked by the relay diarize stage with

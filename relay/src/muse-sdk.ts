@@ -11,7 +11,7 @@ import type { SendUserTurnOptions, StartSessionOptions, Turn } from "@muse-code/
 import type { ExecOptions } from "./muse.ts";
 import type { UiEvent } from "./events.ts";
 
-const CLIENT_NAME = "muse_code_ui_relay";
+const CLIENT_NAME = "muse_code_gui_relay";
 const CLIENT_VERSION = "0.1.0";
 
 function errorText(prefix: string, err: unknown): string {

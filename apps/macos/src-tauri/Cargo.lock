@@ -1846,7 +1846,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "muse-code-ui-macos"
+name = "muse-code-gui-macos"
 version = "0.1.0"
 dependencies = [
  "serde",

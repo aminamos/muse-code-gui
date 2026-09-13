@@ -56,7 +56,7 @@ tools. Auth is the same relay Bearer [REDACTED] on every route.
   `tools/call`). Stateless; no SDK dependency.
 - Muse settings snippet (shape inferred from `muse mcp --help`;
   confirm against Muse on first connect):
-  `{ "mcpServers": { "muse-code-ui": {
+  `{ "mcpServers": { "muse-code-gui": {
     "url": "http://127.0.0.1:8787/mcp",
     "headers": { "Authorization": "Bearer <relay-token>" } } } }`
 - Example agent flow: `rss_episodes` → `transcribe_audio` (rss source +

@@ -3,6 +3,7 @@
 // never passes an API key.
 
 import type { UiEvent } from "./events.ts";
+import { resolveMuseLauncher } from "./config.ts";
 import { runSdkExec } from "./muse-sdk.ts";
 
 export interface ExecOptions {
@@ -105,10 +106,26 @@ export function buildExecArgs(opts: ExecOptions): string[] {
   return args;
 }
 
+// WSL launcher wrap (MUSE_LAUNCHER, e.g. "wsl"): when set, the `muse exec`
+// subprocess is spawned as [launcher, museBin, ...execArgs] so a Windows
+// host can reach a WSL-side muse binary. NOTE: --workspace paths are then
+// WSL paths (user responsibility); the relay passes them through verbatim.
+// Pure for unit testing; runtime passes resolveMuseLauncher().
+export function buildExecCommand(
+  museBin: string,
+  execArgs: string[],
+  launcher?: string | null,
+): { bin: string; args: string[] } {
+  const l = (launcher ?? "").trim();
+  if (l === "") return { bin: museBin, args: execArgs };
+  return { bin: l, args: [museBin, ...execArgs] };
+}
+
 export async function getMuseVersion(museBin: string): Promise<string | null> {
   try {
-    const cmd = new Deno.Command(museBin, {
-      args: ["--version"],
+    const { bin, args } = buildExecCommand(museBin, ["--version"], resolveMuseLauncher());
+    const cmd = new Deno.Command(bin, {
+      args,
       stdout: "piped",
       stderr: "null",
     });
@@ -149,8 +166,9 @@ export async function* runExecSubprocess(
 ): AsyncGenerator<UiEvent> {
   const runId = crypto.randomUUID();
   yield { type: "started", runId };
-  const child = new Deno.Command(museBin, {
-    args: buildExecArgs(opts),
+  const { bin, args } = buildExecCommand(museBin, buildExecArgs(opts), resolveMuseLauncher());
+  const child = new Deno.Command(bin, {
+    args,
     stdout: "piped",
     stderr: "piped",
     stdin: "null",
@@ -249,7 +267,7 @@ export async function* runExecSubprocess(
 }
 
 // Engine selection: SDK first, `muse exec` subprocess as fallback.
-// MUSE_UI_ENGINE=exec forces the subprocess (escape hatch). Note: if the SDK
+// MUSE_GUI_ENGINE=exec forces the subprocess (escape hatch). Note: if the SDK
 // throws after yielding started{}, the consumer sees two started events
 // (SDK runId, then fallback runId); clients treat started as idempotent.
 export async function* runMuseExec(
@@ -257,7 +275,7 @@ export async function* runMuseExec(
   opts: ExecOptions,
   signal: AbortSignal,
 ): AsyncGenerator<UiEvent> {
-  if (Deno.env.get("MUSE_UI_ENGINE") !== "exec") {
+  if (Deno.env.get("MUSE_GUI_ENGINE") !== "exec") {
     try {
       yield* runSdkExec(museBin, opts, signal);
       return;

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Muse Code UI",
+  "productName": "Muse Code GUI",
   "version": "0.1.0",
-  "identifier": "com.muse-code.ui.windows",
+  "identifier": "com.muse-code.gui.windows",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Muse Code UI",
+        "title": "Muse Code GUI",
         "width": 1100,
         "height": 750,
         "minWidth": 800,
