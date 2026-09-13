@@ -9,11 +9,34 @@ import { runTranscribe, type TranscribeOptions } from "./transcribe.ts";
 import { runIngest, type IngestSource } from "./ingest.ts";
 import { handleJsonRpc } from "./mcp.ts";
 
+// Browsers (Tauri WebView, Expo web) call the relay cross-origin with
+// `Authorization` + JSON bodies, which triggers a CORS preflight. The relay
+// binds localhost and authenticates every non-OPTIONS request, so a wildcard
+// origin is safe here.
+const CORS_HEADERS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
 function json(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...CORS_HEADERS },
   });
+}
+
+function preflight(): Response {
+  return new Response(null, { status: 204, headers: { ...CORS_HEADERS } });
+}
+
+function isManagedPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/v1/") ||
+    pathname === "/mcp"
+  );
 }
 
 function checkAuth(req: Request, cfg: RelayConfig): boolean {
@@ -192,9 +215,11 @@ async function handleMcp(req: Request, cfg: RelayConfig): Promise<Response> {
 function router(cfg: RelayConfig) {
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
-    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/v1/") && url.pathname !== "/mcp") {
+    if (!isManagedPath(url.pathname)) {
       return json(404, { error: "not found" });
     }
+    // Preflight carries no auth; real requests are still Bearer-gated below.
+    if (req.method === "OPTIONS") return preflight();
     if (!checkAuth(req, cfg)) {
       return json(401, { error: "missing or invalid bearer token" });
     }

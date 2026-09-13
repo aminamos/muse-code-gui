@@ -43,6 +43,24 @@ Deno.test("server: auth gate + health + ingest + exec echo + mcp", async () => {
   try {
     const anon = await fetch(`${BASE}/api/health`);
     assertEquals(anon.status, 401);
+    // CORS: preflight passes without auth; real responses carry the origin header.
+    const pre = await fetch(`${BASE}/api/exec`, {
+      method: "OPTIONS",
+      headers: {
+        Origin: "http://tauri.localhost",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Authorization, Content-Type",
+      },
+    });
+    assertEquals(pre.status, 204);
+    assertEquals(pre.headers.get("Access-Control-Allow-Origin"), "*");
+    assert(
+      (pre.headers.get("Access-Control-Allow-Headers") ?? "").includes("Authorization"),
+    );
+    const healthRes = await fetch(`${BASE}/api/health`, {
+      headers: { Authorization: `Bearer ${TOKEN}` },
+    });
+    assertEquals(healthRes.headers.get("Access-Control-Allow-Origin"), "*");
     const health = await (await fetch(`${BASE}/api/health`, {
       headers: { Authorization: `Bearer ${TOKEN}` },
     })).json();
