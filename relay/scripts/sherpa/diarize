@@ -1,0 +1,7 @@
+#!/bin/sh
+# Relay diarizer entry point: exec the venv python on diarize.py.
+# Usage: diarize <16kHz-mono-wav> [num_speakers]
+set -e
+HERE="$(cd "$(dirname "$0")" && pwd)"
+RELAY_DIR="$(cd "$HERE/../.." && pwd)"
+exec "$RELAY_DIR/.venv-sherpa/bin/python" "$HERE/diarize.py" "$@"

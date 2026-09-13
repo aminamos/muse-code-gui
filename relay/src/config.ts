@@ -54,6 +54,18 @@ export function resolveMuseBin(): string {
   );
 }
 
+function resolveDiarizeHelper(env: string): string | null {
+  if (env === "off" || env === "none") return null;
+  if (env !== "") return env;
+  try {
+    const candidate = new URL("../scripts/sherpa/diarize", import.meta.url).pathname;
+    Deno.statSync(candidate);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
 export function loadConfig(args: string[]): RelayConfig {
   const allowRemote =
     args.includes("--allow-remote") || Deno.env.get("RELAY_ALLOW_REMOTE") === "1";
@@ -65,7 +77,7 @@ export function loadConfig(args: string[]): RelayConfig {
     generated = true;
   }
   const roots = Deno.env.get("MUSE_UI_WORKSPACES");
-  const diarizeHelper = Deno.env.get("DIARIZE_HELPER") ?? null;
+  const diarizeHelper = resolveDiarizeHelper(Deno.env.get("DIARIZE_HELPER") ?? "");
   return {
     port: Number(Deno.env.get("RELAY_PORT") ?? "8787"),
     bindHost: allowRemote ? "0.0.0.0" : "127.0.0.1",

@@ -32,15 +32,19 @@ tools. Auth is the same relay Bearer [REDACTED] on every route.
   If a Parakeet CLI appears, point `WHISPER_BIN` at a whisper-compatible
   wrapper or extend `relay/src/transcribe.ts`.
 - Decode: `ffmpeg` to 16 kHz mono wav (`FFMPEG_BIN`).
-- Diarization is a subprocess stage: `DIARIZE_HELPER` points at an
-  executable taking a wav path and printing JSON
-  `[{start,end,speaker}]` on stdout. Without it, segments are labeled
-  `SPEAKER_00` and `diarization` is `"none"`.
-- pyannote weights (`pyannote/speaker-diarization-community-1`) return
-  HTTP 401 without an HF login, so a stock install cannot fetch them. To
-  enable: accept the model terms on Hugging Face, install
-  `pyannote.audio` + `torch` (e.g. `uv pip install`), write the helper
-  script per the contract above, and set `DIARIZE_HELPER`.
+- Diarization default: sherpa-onnx helper at `relay/scripts/sherpa/diarize`
+  (auto-detected when executable; models in `relay/models/sherpa/`,
+  venv in `relay/.venv-sherpa/`). `DIARIZE_HELPER` overrides the path;
+  `DIARIZE_HELPER=off` forces single-speaker (`SPEAKER_00`,
+  `diarization:"none"`). Helper contract: argv is a wav path, stdout is
+  JSON `[{start,end,speaker}]`; any failure falls back to single-speaker
+  with a log line.
+- Verified: 17s single-speaker clip → 1 turn in ~2s; pitch-shifted
+  two-voice concat → 2 turns with the boundary at the splice; same-voice
+  DE+EN concat → correctly 1 speaker.
+- pyannote alternative: `relay/scripts/pyannote/diarize.py` +
+  `SETUP.md` (weights are HF-gated, HTTP 401 without login; needs user
+  terms-accept + token, then point `DIARIZE_HELPER` at it).
 
 ## MCP + API use from an agent
 

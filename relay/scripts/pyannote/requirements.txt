@@ -1,0 +1,8 @@
+# Diarizer pins, verified 2026-09-13 via https://pypi.org/pypi/pyannote.audio/json
+# (4.0.7) and https://pypi.org/pypi/torch/json (2.14.0).
+# Model card requires pyannote.audio 4.x:
+# https://huggingface.co/pyannote/speaker-diarization-community-1
+# On macOS the default torch wheel is a CPU build (no CUDA on macOS), and
+# pyannote pipelines run on CPU by default, so no extra index or .to() call.
+pyannote.audio==4.0.7
+torch==2.14.0
