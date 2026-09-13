@@ -1,12 +1,10 @@
 import { useRef, useState } from "react";
 import {
   formatTimestamp,
-  runExec,
   runTranscribe,
   runTranscribeUpload,
   type TranscribeEvent,
   type TranscriptSegment,
-  type UiEvent,
 } from "./lib/execClient";
 import Chat from "./components/Chat";
 
@@ -20,79 +18,31 @@ interface LogLine {
 
 let logId = 0;
 
+const initialRelayUrl =
+  window.localStorage.getItem("relayUrl") ?? DEFAULT_RELAY_URL;
+const initialToken = window.localStorage.getItem("relayToken") ?? "";
+
 export default function App() {
-  const [relayUrl, setRelayUrl] = useState(DEFAULT_RELAY_URL);
-  const [token, setToken] = useState("");
-  const [prompt, setPrompt] = useState("");
-  const [output, setOutput] = useState("");
+  const [relayUrl, setRelayUrl] = useState(initialRelayUrl);
+  const [token, setToken] = useState(initialToken);
   const [logs, setLogs] = useState<LogLine[]>([]);
-  const [status, setStatus] = useState("idle");
-  const [running, setRunning] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
+
+  const tokenMissing = token.trim() === "";
+
+  function updateRelayUrl(value: string) {
+    setRelayUrl(value);
+    window.localStorage.setItem("relayUrl", value);
+  }
+
+  function updateToken(value: string) {
+    setToken(value);
+    window.localStorage.setItem("relayToken", value);
+  }
 
   function pushLog(stream: string, text: string) {
     logId += 1;
     const id = logId;
     setLogs((prev) => [...prev, { id, stream, text }]);
-  }
-
-  function handleEvent(event: UiEvent) {
-    switch (event.type) {
-      case "started":
-        setStatus(`running (${event.runId})`);
-        break;
-      case "delta":
-        setOutput((prev) => prev + event.text);
-        break;
-      case "log":
-        pushLog(event.stream, event.text);
-        break;
-      case "done":
-        setStatus(`done: ${event.terminal} (exit ${event.exitCode})`);
-        setRunning(false);
-        break;
-      case "error":
-        pushLog("stderr", event.message);
-        break;
-    }
-  }
-
-  async function handleRun() {
-    if (running) return;
-    if (!token.trim()) {
-      pushLog("stderr", "error: relay token is required");
-      return;
-    }
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setRunning(true);
-    setOutput("");
-    setStatus("starting…");
-    pushLog("info", `POST ${relayUrl.replace(/\/+$/, "")}/api/exec`);
-    try {
-      await runExec(
-        { prompt },
-        {
-          relayUrl,
-          token: token.trim(),
-          signal: controller.signal,
-          onEvent: handleEvent,
-        },
-      );
-    } catch (err) {
-      if (controller.signal.aborted) {
-        setStatus("stopped");
-        pushLog("info", "run stopped by user");
-      } else {
-        setStatus("error");
-        pushLog("stderr", err instanceof Error ? err.message : String(err));
-      }
-      setRunning(false);
-    }
-  }
-
-  function handleStop() {
-    abortRef.current?.abort();
   }
 
   const [tKind, setTKind] = useState<"url" | "rss" | "path">("url");
@@ -192,15 +142,22 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>Muse Code GUI — macOS</h1>
+      <header className="app-header">
+        <h1>Muse Code GUI</h1>
+        <span className="platform">macOS · Tauri</span>
+        <span className={`conn ${tokenMissing ? "off" : "on"}`}>
+          {tokenMissing ? "no relay token" : "relay token set"}
+        </span>
+      </header>
 
-      <section className="panel">
-        <h2>Settings</h2>
+      <details className="panel" open={tokenMissing}>
+        <summary>Relay settings</summary>
         <label>
           Relay URL
           <input
             value={relayUrl}
             onChange={(e) => setRelayUrl(e.target.value)}
+            onBlur={(e) => updateRelayUrl(e.target.value)}
             placeholder={DEFAULT_RELAY_URL}
             spellCheck={false}
           />
@@ -211,14 +168,14 @@ export default function App() {
             type="password"
             value={token}
             onChange={(e) => setToken(e.target.value)}
+            onBlur={(e) => updateToken(e.target.value)}
             placeholder="relay token"
             autoComplete="off"
           />
         </label>
-      </section>
+      </details>
 
-      <section className="panel">
-        <h2>Chat</h2>
+      <section className="panel chat-panel">
         <Chat
           relayUrl={relayUrl}
           token={token}
@@ -226,38 +183,16 @@ export default function App() {
         />
       </section>
 
-      <section className="panel">
-        <h2>Prompt</h2>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Enter a prompt, e.g. say hi"
-          rows={4}
-        />
-        <div className="controls">
-          <button onClick={handleRun} disabled={running || !prompt.trim()}>
-            Run
-          </button>
-          <button onClick={handleStop} disabled={!running}>
-            Stop
-          </button>
-          <span className="status">{status}</span>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2>Output</h2>
-        <pre className="output">{output || " "}</pre>
-      </section>
-
-      <section className="panel">
-        <h2>Log</h2>
+      <details className="panel">
+        <summary>Log</summary>
         <pre className="log">
-          {logs.length === 0
-            ? " "
-            : logs.map((l) => `[${l.stream}] ${l.text}`).join("\n")}
+          {logs.length === 0 ? (
+            " "
+          ) : (
+            logs.map((l) => `[${l.stream}] ${l.text}`).join("\n")
+          )}
         </pre>
-      </section>
+      </details>
 
       <section className="panel">
         <h2>Transcribe</h2>

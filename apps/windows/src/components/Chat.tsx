@@ -71,8 +71,15 @@ function renderMessageText(text: string): ReactNode[] {
   return nodes;
 }
 
+function newSessionId(): string {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c && typeof c.randomUUID === "function") return c.randomUUID();
+  return `chat-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
+}
+
 export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sessionId, setSessionId] = useState(newSessionId);
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -144,7 +151,7 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
     try {
       await runExecStream(
         { baseUrl, token },
-        { prompt },
+        { prompt, sessionId },
         (event) => handleEvent(assistantMsg.id, event),
         controller.signal,
       );
@@ -164,6 +171,17 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
       abortRef.current = null;
       setRunning(false);
     }
+  }
+
+  function handleNewChat() {
+    if (running) return;
+    abortRef.current = null;
+    retryRef.current = null;
+    setMessages([]);
+    setSessionId(newSessionId());
+    setDraft("");
+    setError("");
+    setStatus("idle");
   }
 
   function handleStop() {
@@ -205,7 +223,7 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
           messages.map((msg) => (
             <div key={msg.id} className={`chat-msg ${msg.role}`}>
               <div className="chat-role">
-                {msg.role === "user" ? "You" : "Assistant"}
+                {msg.role === "user" ? "You" : "Muse"}
               </div>
               <div className="chat-text">
                 {msg.text === "" ? (
@@ -244,9 +262,10 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
           onKeyDown={handleKeyDown}
           disabled={running}
         />
-        <div className="controls">
+        <div className="chat-actions">
           <button
             type="button"
+            className="primary"
             onClick={() => void send(draft)}
             disabled={running || draft.trim() === "" || tokenMissing}
           >
@@ -255,12 +274,19 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
           <button type="button" onClick={handleStop} disabled={!running}>
             Stop
           </button>
+          <button
+            type="button"
+            onClick={handleNewChat}
+            disabled={running || messages.length === 0}
+          >
+            New chat
+          </button>
           <span className="status">{status}</span>
         </div>
       </div>
       <p className="chat-note">
-        One-shot turns: each message starts a new run; the relay returns no
-        session handle on /api/exec, so no history carries between messages.
+        Continuous session: follow-ups run on the same relay session until
+        you start a new chat.
       </p>
     </div>
   );

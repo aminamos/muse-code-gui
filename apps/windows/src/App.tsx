@@ -1,9 +1,7 @@
 import { useRef, useState } from "react";
-import type { ExecUiEvent } from "./lib/execEvents";
 import {
   DEFAULT_RELAY_URL,
   checkRelayHealth,
-  runExecStream,
   runTranscribeStream,
   runTranscribeUpload,
   type RelayHealth,
@@ -29,87 +27,14 @@ const initialRelayUrl =
 const initialToken = window.localStorage.getItem("relayToken") ?? "";
 
 export default function App() {
-  const [prompt, setPrompt] = useState("");
   const [relayUrl, setRelayUrl] = useState(initialRelayUrl);
   const [token, setToken] = useState(initialToken);
-  const [running, setRunning] = useState(false);
-  const [output, setOutput] = useState("");
   const [logs, setLogs] = useState<LogLine[]>([]);
-  const [status, setStatus] = useState("idle");
   const [health, setHealth] = useState<RelayHealth | null>(null);
   const [healthError, setHealthError] = useState("");
-  const abortRef = useRef<AbortController | null>(null);
 
   const usingLocalhostDefault =
     relayUrl.trim() === "" || relayUrl.trim() === DEFAULT_RELAY_URL;
-
-  function handleEvent(event: ExecUiEvent) {
-    switch (event.type) {
-      case "started":
-        setStatus(`running (${event.runId})`);
-        break;
-      case "delta":
-        setOutput((prev) => prev + event.text);
-        break;
-      case "log":
-        setLogs((prev) => [
-          ...prev,
-          { id: logId++, stream: event.stream, text: event.text },
-        ]);
-        break;
-      case "done":
-        setStatus(
-          `done: terminal=${event.terminal} exit=${event.exitCode} chars=${event.text.length}`,
-        );
-        setRunning(false);
-        break;
-      case "error":
-        setLogs((prev) => [
-          ...prev,
-          { id: logId++, stream: "info", text: `error: ${event.message}` },
-        ]);
-        break;
-    }
-  }
-
-  async function handleRun() {
-    if (running || prompt.trim() === "") return;
-    if (token.trim() === "") {
-      setStatus("refusing to run: relay token is empty");
-      return;
-    }
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setRunning(true);
-    setOutput("");
-    setLogs([]);
-    setStatus("starting…");
-    const baseUrl = relayUrl.trim() === "" ? DEFAULT_RELAY_URL : relayUrl.trim();
-    window.localStorage.setItem("relayUrl", baseUrl);
-    window.localStorage.setItem("relayToken", token);
-    try {
-      await runExecStream(
-        { baseUrl, token },
-        { prompt: prompt.trim() },
-        handleEvent,
-        controller.signal,
-      );
-      setStatus((prev) => (prev.startsWith("running") ? "stream closed" : prev));
-    } catch (err) {
-      if (controller.signal.aborted) {
-        setStatus("stopped by user");
-      } else {
-        setStatus(`failed: ${(err as Error).message}`);
-      }
-    } finally {
-      abortRef.current = null;
-      setRunning(false);
-    }
-  }
-
-  function handleStop() {
-    abortRef.current?.abort();
-  }
 
   function handleResetLocalhost() {
     setRelayUrl(DEFAULT_RELAY_URL);
@@ -224,6 +149,9 @@ export default function App() {
       <header>
         <h1>Muse Code GUI</h1>
         <span className="platform">Windows · Tauri</span>
+        <span className={`conn ${token.trim() === "" ? "off" : "on"}`}>
+          {token.trim() === "" ? "no relay token" : "relay token set"}
+        </span>
       </header>
 
       <section className="settings">
@@ -271,42 +199,11 @@ export default function App() {
       </section>
 
       <section className="chat-panel">
-        <h2>Chat</h2>
         <Chat
           relayUrl={relayUrl}
           token={token}
           defaultRelayUrl={DEFAULT_RELAY_URL}
         />
-      </section>
-
-      <section className="prompt">
-        <h2>Prompt</h2>
-        <textarea
-          value={prompt}
-          rows={4}
-          placeholder="Ask Muse to do something…"
-          onChange={(e) => setPrompt(e.target.value)}
-        />
-        <div className="controls">
-          <button
-            type="button"
-            onClick={handleRun}
-            disabled={running || prompt.trim() === ""}
-          >
-            Run
-          </button>
-          <button type="button" onClick={handleStop} disabled={!running}>
-            Stop
-          </button>
-          <span className="status">{status}</span>
-        </div>
-      </section>
-
-      <section className="output">
-        <h2>Streaming output</h2>
-        <pre className="text-view" aria-live="polite">
-          {output === "" ? "…" : output}
-        </pre>
       </section>
 
       <section className="logs">
