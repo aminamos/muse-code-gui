@@ -134,7 +134,8 @@ To get a local copy up and running, start the relay, then open any app.
 _Full references: [docs/PROVIDERS.md](docs/PROVIDERS.md) (per-harness entries),
 [docs/TRANSCRIBE.md](docs/TRANSCRIBE.md) (transcription),
 [docs/SDK.md](docs/SDK.md) (engine + fallback),
-[docs/EXEC-CONTRACT.md](docs/EXEC-CONTRACT.md) (frozen wire contract)._
+[docs/EXEC-CONTRACT.md](docs/EXEC-CONTRACT.md) (frozen wire contract),
+[docs/WINDOWS.md](docs/WINDOWS.md) + [docs/WINDOWS-TEST.md](docs/WINDOWS-TEST.md) (Windows setup and test plan)._
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

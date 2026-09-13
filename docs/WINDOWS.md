@@ -3,6 +3,8 @@
 Target: run the relay and/or the Windows desktop GUI on Windows 11.
 Companion docs: [PROVIDERS.md](PROVIDERS.md), [TRANSCRIBE.md](TRANSCRIBE.md),
 [SDK.md](SDK.md), [EXEC-CONTRACT.md](EXEC-CONTRACT.md).
+Testing on a Windows machine? Follow [WINDOWS-TEST.md](WINDOWS-TEST.md) and
+record your results there.
 
 > Command provenance: every repo-derived command, path, and env name below
 > was read from this repo (see the per-section "Source" notes) or from a
