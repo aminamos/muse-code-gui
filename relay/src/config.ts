@@ -66,10 +66,21 @@ function resolveDiarizeHelper(env: string): string | null {
   }
 }
 
+// Which account the muse backend bills. NOTE: credentials stored via
+// `muse auth set` live in the OS keychain / muse config files, not in the
+// environment, so they are invisible to this check — "subscription" here
+// means "no API-credit env vars", not "provably on subscription billing".
+export function billingMode(): "api_key" | "subscription" {
+  const apiKey = Deno.env.get("META_API_KEY") ?? "";
+  const token = Deno.env.get("MUSE_API_TOKEN") ?? "";
+  return apiKey !== "" || token !== "" ? "api_key" : "subscription";
+}
+
 export function loadConfig(args: string[]): RelayConfig {
   const allowRemote =
     args.includes("--allow-remote") || Deno.env.get("RELAY_ALLOW_REMOTE") === "1";
-  let token = Deno.env.get("RELAY_TOKEN") ?? "";
+  // Token alias: RELAY_TOKEN wins; MUSE_UI_RELAY_TOKEN lets all harnesses share one env name.
+  let token = Deno.env.get("RELAY_TOKEN") || Deno.env.get("MUSE_UI_RELAY_TOKEN") || "";
   let generated = false;
   if (!token) {
     const bytes = crypto.getRandomValues(new Uint8Array(32));

@@ -1,9 +1,10 @@
-// Relay HTTP server: exec + transcribe + ingest + MCP (Streamable HTTP).
-// Auth: `Authorization: Bearer <token>` on every /api/* and /mcp route.
+// Relay HTTP server: exec + transcribe + ingest + MCP (Streamable HTTP) + OpenAI (/v1/*).
+// Auth: `Authorization: Bearer <token>` on every /api/*, /v1/*, and /mcp route.
 
 import { getMuseVersion, runMuseExec, type ExecOptions } from "./muse.ts";
 import { sseResponse } from "./events.ts";
-import { loadConfig, type RelayConfig } from "./config.ts";
+import { billingMode, loadConfig, type RelayConfig } from "./config.ts";
+import { handleChatCompletions, handleModels } from "./openai.ts";
 import { runTranscribe, type TranscribeOptions } from "./transcribe.ts";
 import { runIngest, type IngestSource } from "./ingest.ts";
 import { handleJsonRpc } from "./mcp.ts";
@@ -32,6 +33,7 @@ function workspaceAllowed(cfg: RelayConfig, workspace: string): boolean {
 async function handleHealth(cfg: RelayConfig): Promise<Response> {
   return json(200, {
     ok: true,
+    billing: billingMode(),
     museBin: cfg.museBin,
     museVersion: await getMuseVersion(cfg.museBin),
     transcribe: {
@@ -176,7 +178,7 @@ async function handleMcp(req: Request, cfg: RelayConfig): Promise<Response> {
 function router(cfg: RelayConfig) {
   return async (req: Request): Promise<Response> => {
     const url = new URL(req.url);
-    if (!url.pathname.startsWith("/api/") && url.pathname !== "/mcp") {
+    if (!url.pathname.startsWith("/api/") && !url.pathname.startsWith("/v1/") && url.pathname !== "/mcp") {
       return json(404, { error: "not found" });
     }
     if (!checkAuth(req, cfg)) {
@@ -187,6 +189,8 @@ function router(cfg: RelayConfig) {
       if (req.method === "POST" && url.pathname === "/api/exec") return await handleExec(req, cfg);
       if (req.method === "POST" && url.pathname === "/api/transcribe") return await handleTranscribe(req, cfg);
       if (req.method === "POST" && url.pathname === "/api/ingest") return await handleIngest(req, cfg);
+      if (req.method === "GET" && url.pathname === "/v1/models") return handleModels();
+      if (url.pathname === "/v1/chat/completions") return await handleChatCompletions(req, cfg);
       if (url.pathname === "/mcp") return await handleMcp(req, cfg);
       return json(404, { error: "not found" });
     } catch (err) {
@@ -201,5 +205,6 @@ if (import.meta.main) {
   console.error(`muse: ${cfg.museBin} whisper: ${cfg.whisperBin} (${cfg.whisperModel}) ffmpeg: ${cfg.ffmpegBin}`);
   console.error(`diarizer: ${cfg.diarizeHelper ?? "none (single-speaker fallback)"}`);
   if (cfg.tokenGenerated) console.error(`relay token (generated, this run only): ${cfg.token}`);
+  if (billingMode() === "api_key") console.error("API-credit env detected (META_API_KEY/MUSE_API_TOKEN): muse will bill API credits, not the subscription login");
   Deno.serve({ port: cfg.port, hostname: cfg.bindHost }, router(cfg));
 }
