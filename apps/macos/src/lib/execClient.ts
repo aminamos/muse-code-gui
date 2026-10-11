@@ -108,6 +108,7 @@ export interface TranscribeRequest {
   language?: string;
   diarize?: boolean;
   model?: string;
+  engine?: string;
 }
 
 export interface TranscribeClientOptions {
@@ -158,6 +159,7 @@ export async function runTranscribe(body: TranscribeRequest, opts: TranscribeCli
       language: body.language,
       diarize: body.diarize,
       model: body.model,
+      engine: body.engine,
     }),
     signal: opts.signal,
   });
@@ -167,7 +169,7 @@ export async function runTranscribe(body: TranscribeRequest, opts: TranscribeCli
 
 export async function runTranscribeUpload(
   file: File,
-  options: { language?: string; diarize?: boolean; model?: string },
+  options: { language?: string; diarize?: boolean; model?: string; engine?: string },
   opts: TranscribeClientOptions,
 ): Promise<void> {
   const base = opts.relayUrl.replace(/\/+$/, "");
@@ -176,6 +178,7 @@ export async function runTranscribeUpload(
   if (options.language) form.append("language", options.language);
   if (options.diarize === false) form.append("diarize", "false");
   if (options.model) form.append("model", options.model);
+  if (options.engine) form.append("engine", options.engine);
   const res = await fetch(`${base}/api/transcribe`, {
     method: "POST",
     headers: { Authorization: `Bearer ${opts.token}` },

@@ -28,11 +28,11 @@ commands:
   exec <prompt...>     run one prompt (text streams to stdout)
     [--json] [--model ID] [--workspace PATH] [--session-id UUID]
     [--reasoning-effort E] [--approval-mode M] [--yolo] [--max-model-steps N]
-  voice <audio>        transcribe audio locally, run transcript as a prompt
-    [--language EN] [--no-diarize] [--transcribe-model M]
+  voice <audio>        transcribe audio, run transcript as a prompt
+    [--language EN] [--no-diarize] [--transcribe-model M] [--engine local|muse-voice]
     [--prompt-prefix TEXT]  (plus the exec options above)
-  transcribe <audio>   local whisper transcription only
-    [--language EN] [--no-diarize] [--model M] [--json]
+  transcribe <audio>   transcription only (default engine: local whisper)
+    [--language EN] [--no-diarize] [--model M] [--engine local|muse-voice] [--json]
   health               binary audit + billing mode [--json]
   mcp                  MCP server over stdio
   acp                  ACP v1 agent over stdio
@@ -170,6 +170,7 @@ async function cmdVoice(cfg: RelayConfig, args: string[], provider: string | und
     source: { kind, value },
     language: str(opts.language),
     diarize: opts.no_diarize === true ? false : undefined,
+    engine: str(opts.engine),
     transcribeModel: str(opts.transcribe_model),
     promptPrefix: str(opts.prompt_prefix),
     exec: execOptsFrom(opts, provider),
@@ -200,6 +201,7 @@ async function cmdTranscribe(cfg: RelayConfig, args: string[]): Promise<void> {
       language: str(opts.language),
       diarize: opts.no_diarize === true ? false : undefined,
       model: str(opts.model),
+      engine: str(opts.engine),
     }, AbortSignal.timeout(30 * 60_000))
   ) {
     if (e.type === "done") {

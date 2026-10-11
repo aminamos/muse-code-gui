@@ -105,7 +105,14 @@ export default function App() {
     try {
       const events = streamExec(
         { baseUrl: relayUrl, token: relayToken },
-        { prompt: prompt.trim(), signal: controller.signal },
+        {
+          prompt: prompt.trim(),
+          ...(settings.workspace.trim() ? { workspace: settings.workspace.trim() } : {}),
+          ...(settings.model.trim() ? { model: settings.model.trim() } : {}),
+          ...(settings.reasoningEffort.trim() ? { reasoningEffort: settings.reasoningEffort.trim() } : {}),
+          ...(settings.approvalMode.trim() ? { approvalMode: settings.approvalMode.trim() } : {}),
+          signal: controller.signal,
+        },
       );
       for await (const event of events) {
         if (controller.signal.aborted) {
@@ -152,7 +159,7 @@ export default function App() {
       }
       setRunning(false);
     }
-  }, [appendLog, prompt, running, settings.relayToken, settings.relayUrl]);
+  }, [appendLog, prompt, running, settings.approvalMode, settings.model, settings.reasoningEffort, settings.relayToken, settings.relayUrl, settings.workspace]);
 
   const [tKind, setTKind] = useState<'url' | 'rss' | 'path'>('url');
   const [tValue, setTValue] = useState('');
@@ -348,6 +355,28 @@ export default function App() {
           autoCorrect={false}
           secureTextEntry
         />
+        <Text style={styles.label}>Workspace (relay host path)</Text>
+        <TextInput
+          style={styles.input}
+          value={settings.workspace}
+          onChangeText={(workspace) =>
+            setSettings((prev) => ({ ...prev, workspace }))
+          }
+          placeholder="/path/on/relay/host"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <Text style={styles.label}>Model (blank = default)</Text>
+        <TextInput
+          style={styles.input}
+          value={settings.model}
+          onChangeText={(model) =>
+            setSettings((prev) => ({ ...prev, model }))
+          }
+          placeholder="default"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
         <View style={styles.row}>
           <Button title="Check health" onPress={onCheckHealth} />
         </View>
@@ -365,6 +394,10 @@ export default function App() {
             <ChatScreen
               relayUrl={settings.relayUrl}
               relayToken={settings.relayToken}
+              workspace={settings.workspace}
+              model={settings.model}
+              reasoningEffort={settings.reasoningEffort}
+              approvalMode={settings.approvalMode}
             />
           </View>
         </View>

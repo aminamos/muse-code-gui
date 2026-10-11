@@ -23,7 +23,7 @@ $Version      = "0.1.0"
 $TokenEnv     = "MUSE_GUI_RELAY_TOKEN"
 $McpName      = "muse-code"
 $OmpProvider  = "mcg-relay" # OMP reserves "muse-code" for native Muse auth
-$RelayBaseUrl = "http://127.0.0.1:8787/v1"
+$RelayBaseUrl = "http://127.0.0.1:8744/v1"
 $ValidHarness = @("omp", "opencode", "claude", "codex", "cmd")
 
 foreach ($h in $Harness) {
@@ -419,7 +419,23 @@ function Do-Cmd {
     "{`"transport`": `"stdio`", `"enabled`": true, `"command`": `"$DenoAbs`", `"args`": [$StdioArgsJson]}"
 }
 
+$RelayPort = "8744"
+# --- port migration (8787 -> current default) ----------------------------------
+function Invoke-PortMigration([string]$File) {
+  if (-not (Test-Path $File)) { return }
+  $Text = [IO.File]::ReadAllText($File)
+  if ($Text -notmatch "127\.0\.0\.1:8787") { return }
+  Say "  [$File]"
+  if ($DryRun) { Say "    planned: migrate 127.0.0.1:8787 -> 127.0.0.1:$RelayPort"; return }
+  Backup-File $File
+  [IO.File]::WriteAllText($File, ($Text -replace "127\.0\.0\.1:8787", "127.0.0.1:$RelayPort"))
+  Say "    migrated port 8787 -> $RelayPort"
+}
+
 # --- main --------------------------------------------------------------------------
+Invoke-PortMigration (Join-Path $OmpDir "models.yml")
+Invoke-PortMigration $OpencodeJson
+Invoke-PortMigration (Join-Path $CmdDir "providers.json")
 if (Wanted "omp") { Do-Omp }
 if (Wanted "opencode") { Do-Opencode }
 if (Wanted "claude") { Do-Claude }

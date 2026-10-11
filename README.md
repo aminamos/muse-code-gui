@@ -108,7 +108,7 @@ To get a local copy up and running, start the relay, then open any app.
    cd relay && deno task start
    ```
    Without a token a one-time token is generated and printed. Confirm
-   `GET http://127.0.0.1:8787/api/health` returns `ok:true` and
+   `GET http://127.0.0.1:8744/api/health` returns `ok:true` and
    `billing:"subscription"`.
 4. Install an app (example: macOS)
    ```sh
@@ -238,7 +238,7 @@ Set up muse-code-gui (Muse subscription only — no API credits):
    --config <repo>/relay/deno.json <repo>/relay/src/mcp-stdio.ts`
    (replace `<repo>` with the clone path; back up any config first).
 7. If the harness supports OpenAI-compatible providers, add model
-   `muse-code` at baseURL `http://127.0.0.1:8787/v1`, referencing the
+   `muse-code` at baseURL `http://127.0.0.1:8744/v1`, referencing the
    token by env NAME `MUSE_GUI_RELAY_TOKEN` (never paste the value).
    The relay must be running for provider calls.
 8. Prove it: one tiny turn ("say hi") through the new provider, or the

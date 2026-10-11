@@ -10,7 +10,7 @@ provider API key.
 
 ## Settings
 
-- Relay URL defaults to the localhost relay (`http://127.0.0.1:8787`).
+- Relay URL defaults to the localhost relay (`http://127.0.0.1:8744`).
   Enter any LAN/Tailscale URL as a remote override, or reset to localhost.
 - Relay token is stored in `localStorage` (`relayToken`).
 

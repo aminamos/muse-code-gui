@@ -17,6 +17,7 @@ export interface VoiceOptions {
   language?: string;
   diarize?: boolean;
   transcribeModel?: string;
+  engine?: string;
   /** Overrides the default "follow this instruction" framing. */
   promptPrefix?: string;
   exec?: Omit<ExecOptions, "prompt">;
@@ -50,6 +51,7 @@ export async function* runVoiceEvents(
       source: opts.source,
       language: opts.language,
       diarize: opts.diarize,
+      engine: opts.engine,
       model: opts.transcribeModel,
     }, signal)
   ) {
@@ -92,6 +94,7 @@ export async function runVoiceCollect(
       source: opts.source,
       language: opts.language,
       diarize: opts.diarize,
+      engine: opts.engine,
       model: opts.transcribeModel,
     }, signal)
   ) {

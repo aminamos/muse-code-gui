@@ -14,6 +14,13 @@ import type {
 } from "./events.ts";
 import type { RelayConfig } from "./config.ts";
 import { deriveFfprobe, missingBinaryError } from "./config.ts";
+import {
+  convertToVoiceWav,
+  mapVoiceTurns,
+  resolveVoiceMode,
+  transcribeVoiceFile,
+  VOICE_MODEL,
+} from "./asr.ts";
 
 export type AudioSourceKind = "url" | "path" | "rss";
 
@@ -30,6 +37,8 @@ export interface TranscribeOptions {
   language?: string;
   diarize?: boolean;
   model?: string;
+  /** "local" (whisper, default) or "muse-voice" (Meta API, $0.18/hr). */
+  engine?: string;
 }
 
 export interface RssEpisode {
@@ -303,6 +312,33 @@ export async function* runTranscribe(
       input = await downloadToFile(ep.audioUrl, tmp, signal);
     }
     if (signal.aborted) return;
+    const engine = opts.engine ?? cfg.transcribeEngine ?? "local";
+    if (engine !== "local" && engine !== "muse-voice") {
+      throw new Error(`unknown transcribe engine '${engine}' (local|muse-voice)`);
+    }
+    if (engine === "muse-voice") {
+      yield { type: "progress", stage: "convert", detail: "ffmpeg 24k mono wav" };
+      const wav = `${tmp}/voice.wav`;
+      const seconds = await convertToVoiceWav(cfg, input, wav, signal);
+      if (signal.aborted) return;
+      const mode = resolveVoiceMode(opts.diarize);
+      yield { type: "progress", stage: "transcribe", detail: `muse-voice ${mode.toLowerCase()} (API-billed)` };
+      const v = await transcribeVoiceFile(wav, mode, { signal });
+      const mapped = mapVoiceTurns(v.turns);
+      yield {
+        type: "done",
+        result: {
+          engine: `muse-voice/${VOICE_MODEL}`,
+          diarization: mode === "DIARIZATION" ? "external" : "none",
+          language: opts.language ?? "en",
+          duration: seconds,
+          speakers: mapped.speakers,
+          segments: mapped.segments,
+          text: v.transcript !== "" ? v.transcript : mapped.text,
+        },
+      };
+      return;
+    }
     if (!cfg.ffmpegBin) throw missingBinaryError("ffmpeg");
     if (!cfg.whisperBin) throw missingBinaryError("whisper");
     yield { type: "progress", stage: "decode", detail: "ffmpeg 16k mono wav" };

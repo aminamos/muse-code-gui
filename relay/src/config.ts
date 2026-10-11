@@ -24,6 +24,7 @@ export interface RelayConfig {
   unzipBin: string | null;
   diarizeHelper: string | null;
   workspaceRoots: string[] | null;
+  transcribeEngine: "local" | "muse-voice";
 }
 
 function osName(override?: string): string {
@@ -247,10 +248,14 @@ export function loadConfig(args: string[]): RelayConfig {
     generated = true;
   }
   const roots = Deno.env.get("MUSE_GUI_WORKSPACES");
+  const engineRaw = Deno.env.get("TRANSCRIBE_ENGINE") ?? "local";
+  if (engineRaw !== "local" && engineRaw !== "muse-voice") {
+    throw new Error(`TRANSCRIBE_ENGINE must be local|muse-voice (got '${engineRaw}')`);
+  }
   const diarizeHelper = resolveDiarizeHelper(Deno.env.get("DIARIZE_HELPER") ?? "");
   const ffmpegBin = whichBin(Deno.env.get("FFMPEG_BIN") ?? null, "ffmpeg");
   return {
-    port: Number(Deno.env.get("RELAY_PORT") ?? "8787"),
+    port: Number(Deno.env.get("RELAY_PORT") ?? "8744"),
     bindHost: allowRemote ? "0.0.0.0" : "127.0.0.1",
     token,
     tokenGenerated: generated,
@@ -264,5 +269,6 @@ export function loadConfig(args: string[]): RelayConfig {
     unzipBin: whichBin(null, "unzip"),
     diarizeHelper: diarizeHelper && diarizeHelper !== "" ? diarizeHelper : null,
     workspaceRoots: roots ? splitWorkspaceRoots(roots) : null,
+    transcribeEngine: engineRaw,
   };
 }

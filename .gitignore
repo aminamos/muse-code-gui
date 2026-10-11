@@ -12,3 +12,8 @@ relay/models/
 *.pt
 *.onnx
 *.bin
+
+.wrangler/
+.commandcode/
+*.sqlite-shm
+*.sqlite-wal

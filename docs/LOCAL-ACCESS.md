@@ -15,7 +15,7 @@ For MCP clients (Claude Code, Codex, OpenCode, Command Code, OMP).
 - stdio (local, no token — it runs as you):
   `deno task mcp-stdio`
 - Streamable HTTP (needs relay + token):
-  `POST http://127.0.0.1:8787/mcp` with `Authorization: Bearer $MUSE_GUI_RELAY_TOKEN`
+  `POST http://127.0.0.1:8744/mcp` with `Authorization: Bearer $MUSE_GUI_RELAY_TOKEN`
 - Tools: `muse_exec`, `voice_exec`, `transcribe_audio`, `ingest_document`, `rss_episodes`
 - `installer/install.sh` (or `install.ps1` on Windows) registers the stdio
   server in all five harnesses. Re-run it with `--dry-run` first.
@@ -52,7 +52,7 @@ Relay must be running: `MUSE_GUI_RELAY_TOKEN=<token> deno task start`
 ```sh
 curl -N -H "Authorization: Bearer $MUSE_GUI_RELAY_TOKEN" \
   -H "Content-Type: application/json" -d '{"prompt":"say hi"}' \
-  http://127.0.0.1:8787/api/exec
+  http://127.0.0.1:8744/api/exec
 ```
 
 ## CLI (`museexec`)
@@ -75,7 +75,16 @@ Local, no token — runs as you. Subscription `meta` by default.
 
 Your subscription includes TUI voice input (Option+V), but that lives
 inside the interactive terminal. The local equivalent is the voice
-pipeline: local whisper transcription (free, offline, diarized) feeding
-`muse exec`. Same framing everywhere (`voice.ts`): "Follow this voice
-instruction…", overridable via `promptPrefix`. Pure transcription without
-running a prompt is `transcribe_audio` / `museexec transcribe`.
+pipeline: transcription feeding `muse exec`. Same framing everywhere
+(`voice.ts`): "Follow this voice instruction…", overridable via
+`promptPrefix`. Pure transcription without running a prompt is
+`transcribe_audio` / `museexec transcribe`.
+
+Two transcription engines: `local` whisper (free, offline, diarized —
+the default) and `muse-voice` (Meta `muse-voice-transcribe-1.0`:
+uploaded files via `POST /v1/asr/transcribe`, live mic via
+`wss://.../asr/realtime` proxied at relay `/api/asr/realtime`).
+Muse Voice needs `MUSE_VOICE_API_KEY` on the relay host and is
+API-billed ($0.18/audio-hour), never subscription. Select per request
+(`engine: "muse-voice"`) or by default (`TRANSCRIBE_ENGINE=muse-voice`).
+The macOS shell exposes both plus a live-mic mode.

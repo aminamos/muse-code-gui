@@ -7,6 +7,7 @@ import { auditBinaries, billingMode, formatBinaryAudit, loadConfig, type RelayCo
 import { handleChatCompletions, handleModels } from "./openai.ts";
 import { runTranscribe, type TranscribeOptions } from "./transcribe.ts";
 import { runVoiceEvents } from "./voice.ts";
+import { buildVoiceHandshake, requireVoiceKey, VOICE_WS_URL, type VoiceMode } from "./asr.ts";
 import { runIngest, type IngestSource } from "./ingest.ts";
 import { handleJsonRpc } from "./mcp.ts";
 
@@ -132,6 +133,7 @@ async function handleTranscribe(req: Request, cfg: RelayConfig): Promise<Respons
       language: typeof form.get("language") === "string" ? String(form.get("language")) : undefined,
       diarize: form.get("diarize") !== "false",
       model: typeof form.get("model") === "string" ? String(form.get("model")) : undefined,
+      engine: typeof form.get("engine") === "string" ? String(form.get("engine")) : undefined,
     };
   } else {
     let body: Record<string, unknown>;
@@ -149,6 +151,7 @@ async function handleTranscribe(req: Request, cfg: RelayConfig): Promise<Respons
       language: typeof body.language === "string" ? body.language : undefined,
       diarize: body.diarize === false ? false : undefined,
       model: typeof body.model === "string" ? body.model : undefined,
+      engine: typeof body.engine === "string" ? body.engine : undefined,
     };
   }
   async function* events() {
@@ -182,6 +185,7 @@ async function handleVoiceExec(req: Request, cfg: RelayConfig): Promise<Response
       source: { kind: audio.kind, value: audio.value, index: typeof audio.index === "number" ? audio.index : undefined },
       language: typeof body.language === "string" ? body.language : undefined,
       diarize: body.diarize === false ? false : undefined,
+      engine: typeof body.engine === "string" ? body.engine : undefined,
       transcribeModel: str(body.transcribeModel),
       promptPrefix: str(body.promptPrefix),
       exec: {
@@ -197,6 +201,98 @@ async function handleVoiceExec(req: Request, cfg: RelayConfig): Promise<Response
     }, req.signal),
     req.signal,
   );
+}
+
+function parseVoiceMode(raw: string): VoiceMode {
+  if (raw === "" || raw === "DIARIZATION") return "DIARIZATION";
+  if (raw === "ENDPOINTING") return "ENDPOINTING";
+  if (raw === "PUSH_TO_TALK") return "PUSH_TO_TALK";
+  throw new Error(`unknown ASR mode '${raw}' (PUSH_TO_TALK|ENDPOINTING|DIARIZATION)`);
+}
+
+/** Pipe one browser mic session to the Voice realtime API. Key stays server-side. */
+export async function proxyAsrSession(
+  client: WebSocket,
+  upstreamUrl: string,
+  mode: VoiceMode,
+  key: string,
+): Promise<void> {
+  console.error("asr realtime session: Meta API-billed ($0.18/audio-hour), never subscription");
+  const upstream = new WebSocket(upstreamUrl);
+  const send = (ws: WebSocket, data: string | ArrayBuffer | Uint8Array) => {
+    if (ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(data as string);
+      } catch {
+        // peer went away; closers below handle teardown
+      }
+    }
+  };
+  // Frames the client sends before upstream opens must wait, not drop.
+  const pending: Array<string | ArrayBuffer> = [];
+  const sendUpstream = (data: string | ArrayBuffer) => {
+    if (upstream.readyState === WebSocket.OPEN) send(upstream, data);
+    else pending.push(data);
+  };
+  await new Promise<void>((resolve) => {
+    const done = () => resolve();
+    upstream.onopen = () => {
+      upstream.send(JSON.stringify(buildVoiceHandshake(mode, key)));
+      for (const data of pending.splice(0)) send(upstream, data);
+    };
+    upstream.onmessage = (ev) => {
+      if (typeof ev.data === "string") send(client, ev.data);
+    };
+    upstream.onerror = () => {
+      send(client, JSON.stringify({ type: "error", message: "upstream voice connection failed" }));
+      done();
+    };
+    upstream.onclose = () => {
+      if (client.readyState === WebSocket.OPEN) client.close(1000);
+      done();
+    };
+    client.onmessage = (ev) => {
+      if (typeof ev.data === "string") sendUpstream(ev.data);
+      else if (ev.data instanceof ArrayBuffer) sendUpstream(ev.data);
+      else if (ev.data instanceof Blob) {
+        void ev.data.arrayBuffer().then((buf) => sendUpstream(buf));
+      }
+    };
+    client.onclose = () => {
+      if (upstream.readyState === WebSocket.OPEN) upstream.close(1000);
+      done();
+    };
+    client.onerror = done;
+  });
+  if (upstream.readyState === WebSocket.OPEN) upstream.close(1000);
+}
+
+async function handleAsrRealtime(req: Request, cfg: RelayConfig): Promise<Response> {
+  const url = new URL(req.url);
+  // Browsers cannot set headers on a WS handshake: token travels in query.
+  const token = url.searchParams.get("token") ?? "";
+  if (token === "" || token !== cfg.token) {
+    return json(401, { error: "missing or invalid relay token (query ?token=)" });
+  }
+  if (req.headers.get("upgrade")?.toLowerCase() !== "websocket") {
+    return json(426, { error: "websocket upgrade required" });
+  }
+  let mode: VoiceMode;
+  try {
+    mode = parseVoiceMode(url.searchParams.get("mode") ?? "");
+  } catch (err) {
+    return json(400, { error: err instanceof Error ? err.message : String(err) });
+  }
+  let key: string;
+  try {
+    key = requireVoiceKey();
+  } catch (err) {
+    return json(402, { error: err instanceof Error ? err.message : String(err) });
+  }
+  const { socket, response } = Deno.upgradeWebSocket(req);
+  void proxyAsrSession(socket, `${VOICE_WS_URL}?sessionId=${crypto.randomUUID()}`, mode, key)
+    .catch((err) => console.error(`asr proxy failed: ${err instanceof Error ? err.message : String(err)}`));
+  return response;
 }
 
 async function handleIngest(req: Request, cfg: RelayConfig): Promise<Response> {
@@ -263,6 +359,7 @@ function router(cfg: RelayConfig) {
       return json(401, { error: "missing or invalid bearer token" });
     }
     try {
+      if (req.method === "GET" && url.pathname === "/api/asr/realtime") return await handleAsrRealtime(req, cfg);
       if (req.method === "GET" && url.pathname === "/api/health") return await handleHealth(cfg);
       if (req.method === "POST" && url.pathname === "/api/exec") return await handleExec(req, cfg);
       if (req.method === "POST" && url.pathname === "/api/transcribe") return await handleTranscribe(req, cfg);

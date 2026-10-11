@@ -13,7 +13,8 @@
     "tauri:build:macos": "tauri build --bundles app dmg",
     "tauri:build:linux": "tauri build --bundles deb appimage",
     "tauri:icon": "tauri icon ../windows/assets/icon.svg",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "tauri:mic": "scripts/add-mic-permission.sh \"src-tauri/target/debug/bundle/macos/Muse Code GUI.app\""
   },
   "dependencies": {
     "@tauri-apps/api": "2.11.1",

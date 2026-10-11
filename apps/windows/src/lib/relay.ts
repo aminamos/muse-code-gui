@@ -10,7 +10,7 @@ import {
 } from "./transcribeEvents";
 
 /** Desktop default: localhost relay. Remote override via settings. */
-export const DEFAULT_RELAY_URL = "http://127.0.0.1:8787";
+export const DEFAULT_RELAY_URL = "http://127.0.0.1:8744";
 
 export interface RelaySettings {
   baseUrl: string;

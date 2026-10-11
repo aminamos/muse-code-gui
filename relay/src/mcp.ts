@@ -52,6 +52,7 @@ const TOOLS = [
         language: { type: "string", default: "en" },
         diarize: { type: "boolean", default: true },
         model: { type: "string", description: "whisper model, default relay WHISPER_MODEL" },
+        engine: { type: "string", enum: ["local", "muse-voice"], description: "Transcription engine; muse-voice is API-billed" },
       },
     },
   },
@@ -73,6 +74,7 @@ const TOOLS = [
         },
         language: { type: "string", default: "en" },
         diarize: { type: "boolean", default: true },
+        engine: { type: "string", enum: ["local", "muse-voice"], description: "Transcription engine; muse-voice is API-billed" },
         promptPrefix: { type: "string", description: "Overrides the default 'follow this voice instruction' framing" },
         workspace: { type: "string" },
         model: { type: "string" },
@@ -192,6 +194,7 @@ async function callTool(cfg: RelayConfig, name: string, args: Record<string, unk
           language: typeof args.language === "string" ? args.language : undefined,
           diarize: args.diarize === false ? false : undefined,
           model: typeof args.model === "string" ? args.model : undefined,
+          engine: typeof args.engine === "string" ? args.engine : undefined,
         }, signal)
       ) {
         if (e.type === "done") return textResult(JSON.stringify(e.result));
@@ -209,6 +212,7 @@ async function callTool(cfg: RelayConfig, name: string, args: Record<string, unk
         source: { kind: audio.kind, value: audio.value, index: typeof audio.index === "number" ? audio.index : undefined },
         language: typeof args.language === "string" ? args.language : undefined,
         diarize: args.diarize === false ? false : undefined,
+        engine: typeof args.engine === "string" ? args.engine : undefined,
         promptPrefix: typeof args.promptPrefix === "string" ? args.promptPrefix : undefined,
         exec: {
           workspace: str(args.workspace),

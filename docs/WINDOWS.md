@@ -163,7 +163,7 @@ the launcher, not the relay. Wire the relay with `MUSE_BIN` only.
 
 WSL2 forwards localhost both ways, so a relay bound to `127.0.0.1`
 inside WSL2 (the default — `relay/src/config.ts:80-94`) is reachable
-from native Windows apps at `http://127.0.0.1:8787`.
+from native Windows apps at `http://127.0.0.1:8744`.
 (WSL2 localhost-forwarding behavior is platform-documented, UNVERIFIED
 here.)
 
@@ -177,7 +177,7 @@ Task source: `relay/deno.json` — `start` runs
 src/server.ts` (read in repo). Confirm from PowerShell:
 
 ```powershell
-curl.exe http://127.0.0.1:8787/api/health
+curl.exe http://127.0.0.1:8744/api/health
 ```
 
 Expect `ok:true`, `billing:"subscription"`, plus `museBin`/`museVersion`
@@ -185,7 +185,7 @@ and the `transcribe`/`ingest` blocks
 (`relay/src/server.ts:33-48`, `docs/TRANSCRIBE.md:22-23`).
 
 The Windows GUI defaults to exactly this URL:
-`DEFAULT_RELAY_URL = "http://127.0.0.1:8787"`
+`DEFAULT_RELAY_URL = "http://127.0.0.1:8744"`
 (`apps/windows/src/lib/relay.ts:12-13`), so no settings change is
 needed for topology A. Remote override is via the app's Settings field
 (`apps/windows/src/App.tsx`, `relayUrl` in localStorage).
@@ -202,9 +202,9 @@ RELAY_ALLOW_REMOTE=1 MUSE_GUI_RELAY_TOKEN=<token> deno task start
 MUSE_GUI_RELAY_TOKEN=<token> deno task start-remote
 ```
 
-`bindHost` becomes `0.0.0.0` (default port `8787` from `RELAY_PORT`,
+`bindHost` becomes `0.0.0.0` (default port `8744` from `RELAY_PORT`,
 `config.ts:93`). In the Windows app's Settings, set the relay URL to
-`http://<mac-lan-ip>:8787` and paste the same token.
+`http://<mac-lan-ip>:8744` and paste the same token.
 
 Firewall (UNVERIFIED, not changeable from here): macOS prompts on first
 `0.0.0.0` bind — accept it; Windows needs no inbound rule for an
@@ -256,7 +256,7 @@ mixed path, retry from PowerShell.
 
 Mobile apps are remote-relay-only: no localhost default
 (`apps/ios/src/settings.ts:4`, `docs/EXEC-CONTRACT.md:50-51`), so point
-them at topology A (`http://<windows-lan-ip>:8787` — note: from a
+them at topology A (`http://<windows-lan-ip>:8744` — note: from a
 physical phone, `127.0.0.1` is the phone itself) or topology B.
 
 ```powershell
@@ -293,7 +293,7 @@ The repo roadmap still lists "EAS / TestFlight submission" as TODO
 ## 7. Harness provider paths on Windows
 
 The relay contract is OS-independent (`docs/PROVIDERS.md:10-20`):
-provider endpoint `POST http://127.0.0.1:8787/v1/chat/completions`,
+provider endpoint `POST http://127.0.0.1:8744/v1/chat/completions`,
 `GET /v1/models` lists `muse-code`, Bearer token referenced by env
 NAME `MUSE_GUI_RELAY_TOKEN` (never pasted); MCP stdio needs no token.
 

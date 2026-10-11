@@ -9,7 +9,7 @@ credentials are invisible to that check).
 
 ## Relay contract (harness-facing)
 
-- Provider endpoint: `POST http://127.0.0.1:8787/v1/chat/completions`
+- Provider endpoint: `POST http://127.0.0.1:8744/v1/chat/completions`
   (OpenAI shape; `GET /v1/models` lists `muse-code`). Auth: relay
   Bearer token. `user` field = managed-session continuity key.
 - MCP stdio (no daemon, no token):

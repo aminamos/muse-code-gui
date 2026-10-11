@@ -11,6 +11,12 @@ export interface ChatProps {
   relayUrl: string;
   token: string;
   defaultRelayUrl: string;
+  workspace?: string;
+  model?: string;
+  reasoningEffort?: string;
+  approvalMode?: string;
+  sessionId: string;
+  onSessionTitle?: (sessionId: string, title: string) => void;
 }
 
 interface ChatMessage {
@@ -23,12 +29,6 @@ let messageId = 0;
 function nextId(): number {
   messageId += 1;
   return messageId;
-}
-
-function newSessionId(): string {
-  const c = globalThis.crypto as Crypto | undefined;
-  if (c && typeof c.randomUUID === "function") return c.randomUUID();
-  return `chat-${Date.now()}-${Math.floor(Math.random() * 1e9)}`;
 }
 
 /** Minimal markdown-lite: fenced code blocks, inline code, bold. Elements only, no HTML injection. */
@@ -77,9 +77,8 @@ function renderMessageText(text: string): ReactNode[] {
   return nodes;
 }
 
-export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
+export default function Chat({ relayUrl, token, defaultRelayUrl, workspace, model, reasoningEffort, approvalMode, sessionId, onSessionTitle }: ChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [sessionId, setSessionId] = useState(newSessionId);
   const [draft, setDraft] = useState("");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
@@ -148,7 +147,14 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
     setStatus("starting…");
     try {
       await runExec(
-        { prompt, sessionId },
+        {
+          prompt,
+          sessionId,
+          ...(workspace?.trim() ? { workspace: workspace.trim() } : {}),
+          ...(model?.trim() ? { model: model.trim() } : {}),
+          ...(reasoningEffort?.trim() ? { reasoningEffort: reasoningEffort.trim() } : {}),
+          ...(approvalMode?.trim() ? { approvalMode: approvalMode.trim() } : {}),
+        },
         {
           relayUrl: baseUrl,
           token: token.trim(),
@@ -156,6 +162,9 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
           onEvent: (event) => handleEvent(assistantMsg.id, event),
         },
       );
+      if (onSessionTitle && messages.length === 0) {
+        onSessionTitle(sessionId, prompt.slice(0, 42));
+      }
       setStatus((prev) =>
         prev.startsWith("running") || prev === "starting…"
           ? "stream closed"
@@ -174,16 +183,17 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
     }
   }
 
-  function handleNewChat() {
-    if (running) return;
+  // Session lifecycle is owned by the parent sidebar.
+  // Reset local transcript when the active session changes.
+  useEffect(() => {
+    abortRef.current?.abort();
     abortRef.current = null;
     retryRef.current = null;
     setMessages([]);
-    setSessionId(newSessionId());
     setDraft("");
     setError("");
     setStatus("idle");
-  }
+  }, [sessionId]);
 
   function handleStop() {
     abortRef.current?.abort();
@@ -217,14 +227,33 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
     <div className="chat">
       <div className="chat-list" ref={listRef} aria-live="polite">
         {messages.length === 0 ? (
-          <p className="chat-empty">
-            No messages yet. Type a prompt below to start.
-          </p>
+          <div className="chat-empty">
+            <h2>What should we build?</h2>
+            <p>Continuous relay session. Follow-ups share context until you start a new chat.</p>
+            <div className="suggest-row">
+              {["Explain this repo", "Write a test", "Refactor a function"].map((s) => (
+                <button key={s} type="button" onClick={() => void send(s)} disabled={running || tokenMissing}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         ) : (
           messages.map((msg) => (
             <div key={msg.id} className={`chat-msg ${msg.role}`}>
-              <div className="chat-role">
-                {msg.role === "user" ? "You" : "Muse"}
+              <div className="msg-head">
+                <div className="chat-role">
+                  {msg.role === "user" ? "You" : "Muse"}
+                </div>
+                {msg.role === "assistant" && msg.text !== "" && (
+                  <button
+                    type="button"
+                    className="copy-btn"
+                    onClick={() => void navigator.clipboard?.writeText(msg.text)}
+                  >
+                    Copy
+                  </button>
+                )}
               </div>
               <div className="chat-text">
                 {msg.text === "" ? (
@@ -255,34 +284,29 @@ export default function Chat({ relayUrl, token, defaultRelayUrl }: ChatProps) {
         </div>
       )}
       <div className="chat-form">
-        <textarea
-          value={draft}
-          rows={3}
-          placeholder="Message Muse… (Enter to send, Shift+Enter for a new line)"
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={running}
-        />
-        <div className="chat-actions">
-          <button
-            type="button"
-            className="primary"
-            onClick={() => void send(draft)}
-            disabled={running || draft.trim() === "" || tokenMissing}
-          >
-            Send
-          </button>
-          <button type="button" onClick={handleStop} disabled={!running}>
-            Stop
-          </button>
-          <button
-            type="button"
-            onClick={handleNewChat}
-            disabled={running || messages.length === 0}
-          >
-            New chat
-          </button>
-          <span className="status">{status}</span>
+        <div className="composer">
+          <textarea
+            value={draft}
+            rows={2}
+            placeholder="Message Muse… (Enter to send, Shift+Enter for a new line)"
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={running}
+          />
+          <div className="chat-actions">
+            <button
+              type="button"
+              className="primary"
+              onClick={() => void send(draft)}
+              disabled={running || draft.trim() === "" || tokenMissing}
+            >
+              Send
+            </button>
+            <button type="button" onClick={handleStop} disabled={!running}>
+              Stop
+            </button>
+            <span className="status">{status}</span>
+          </div>
         </div>
       </div>
       <p className="chat-note">

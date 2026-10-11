@@ -22,8 +22,11 @@
 #   When these are absent the macOS app is built UNSIGNED (Tauri skips signing
 #   when APPLE_SIGNING_IDENTITY is unset) instead of failing.
 #
-# TRIGGERS: push to main + manual dispatch. No app-level live model turns are
-# run here; the only model spend is whatever the relay tests already use.
+# TRIGGERS: relay runs on push to main + manual dispatch; desktop (the
+# expensive macOS/Windows Tauri matrix, artifacts are manual-download only --
+# no release consumes them) runs on manual dispatch only. No app-level live
+# model turns are run here; the only model spend is whatever the relay tests
+# already use.
 
 name: cloud-build
 
@@ -65,6 +68,9 @@ jobs:
 
   desktop:
     name: desktop (${{ matrix.shell }})
+    # Dispatch-only: the Tauri matrix is the expensive part of this workflow
+    # and its artifacts are manual-download only (no release consumes them).
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false

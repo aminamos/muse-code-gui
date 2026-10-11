@@ -138,7 +138,7 @@ src/server.ts` (read in repo). Other tasks: `start-remote` (adds
 `--allow-remote`), `mcp-stdio`, `check`, `test`, `test-unit`.
 
 ```bash
-curl http://127.0.0.1:8787/api/health
+curl http://127.0.0.1:8744/api/health
 ```
 
 Expect `ok:true`, `billing:"subscription"`, plus `museBin`/
@@ -163,7 +163,7 @@ cd ../android && npm install && npx tsc --noEmit && npm run smoke
 
 Desktop (macOS/Windows) and mobile apps all accept a relay URL + token
 in Settings. Defaults (verified): desktop defaults to localhost
-(`DEFAULT_RELAY_URL = "http://127.0.0.1:8787"`,
+(`DEFAULT_RELAY_URL = "http://127.0.0.1:8744"`,
 `apps/windows/src/lib/relay.ts:12-13`); iOS/Android are
 remote-relay-only with no localhost default
 (`apps/ios/src/settings.ts:4`, `docs/EXEC-CONTRACT.md:50-51`).
@@ -177,10 +177,10 @@ RELAY_ALLOW_REMOTE=1 MUSE_GUI_RELAY_TOKEN=<token> deno task start
 MUSE_GUI_RELAY_TOKEN=<token> deno task start-remote
 ```
 
-`bindHost` becomes `0.0.0.0` (default port `8787` via `RELAY_PORT`,
-`config.ts:93`). Clients then use `http://<linux-lan-ip>:8787` + token.
-Firewall (UNVERIFIED): open 8787/tcp for the LAN as appropriate, e.g.
-`sudo ufw allow from 192.168.0.0/16 to any port 8787`
+`bindHost` becomes `0.0.0.0` (default port `8744` via `RELAY_PORT`,
+`config.ts:93`). Clients then use `http://<linux-lan-ip>:8744` + token.
+Firewall (UNVERIFIED): open 8744/tcp for the LAN as appropriate, e.g.
+`sudo ufw allow from 192.168.0.0/16 to any port 8744`
 (Ubuntu `ufw` example, not executed here) or the equivalent
 `firewalld` rule on Fedora.
 
@@ -216,7 +216,7 @@ WantedBy=default.target
 systemctl --user daemon-reload
 systemctl --user enable --now muse-relay
 systemctl --user status muse-relay
-curl http://127.0.0.1:8787/api/health
+curl http://127.0.0.1:8744/api/health
 ```
 
 Notes: `~/.deno/bin/deno` is the vendor installer's default location
@@ -275,7 +275,7 @@ npm start        # expo start — dev server + QR
 
 Scripts source: `apps/ios/package.json`, `apps/android/package.json`
 (`start`/`android`/`ios`/`web`/`smoke`, all `expo …` except smoke).
-Point the app at `http://<linux-lan-ip>:8787` + token (mobile is
+Point the app at `http://<linux-lan-ip>:8744` + token (mobile is
 remote-relay-only, §5).
 
 Cloud builds (EAS) — commands UNVERIFIED here; profiles verified in
@@ -312,7 +312,7 @@ MCP stdio line (verbatim from `docs/PROVIDERS.md:15-17`):
 deno run --allow-run --allow-read --allow-write --allow-env --allow-net --config <repo>/relay/deno.json <repo>/relay/src/mcp-stdio.ts
 ```
 
-Provider entries point at `http://127.0.0.1:8787/v1` (or the LAN URL
+Provider entries point at `http://127.0.0.1:8744/v1` (or the LAN URL
 from §5), model `muse-code`, referencing the token by env NAME
 `MUSE_GUI_RELAY_TOKEN` — never pasted (`docs/PROVIDERS.md:18-20`).
 The relay must be running for provider calls. Prove each new entry with

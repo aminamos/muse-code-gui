@@ -74,6 +74,12 @@ Deno.test("server: auth gate + health + ingest + exec echo + mcp", async () => {
     })).json();
     assertEquals(ing.text, "abc");
 
+    // realtime proxy: no token -> 401, token but plain HTTP -> 426. No spend.
+    const noToken = await fetch(`${BASE}/api/asr/realtime?token=nope`);
+    assertEquals(noToken.status, 401);
+    const noUpgrade = await fetch(`${BASE}/api/asr/realtime?token=${TOKEN}`);
+    assertEquals(noUpgrade.status, 426);
+
     // voice_exec validation rejects a missing audio source without spending.
     const badVoice = await fetch(`${BASE}/api/voice_exec`, {
       method: "POST",

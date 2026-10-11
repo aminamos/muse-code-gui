@@ -45,19 +45,32 @@ tools. Auth is the same relay Bearer [REDACTED] on every route.
 - pyannote alternative: `relay/scripts/pyannote/diarize.py` +
   `SETUP.md` (weights are HF-gated, HTTP 401 without login; needs user
   terms-accept + token, then point `DIARIZE_HELPER` at it).
+- Muse Voice engine (opt-in): Meta's `muse-voice-transcribe-1.0` over
+  `POST https://api.meta.ai/v1/asr/transcribe` (files) and
+  `wss://api.meta.ai/v1/asr/realtime` (live mic, proxied at relay
+  `GET /api/asr/realtime`). Select per request (`engine:
+  "local"|"muse-voice"`) or by default (`TRANSCRIBE_ENGINE=muse-voice`).
+  Needs `MUSE_VOICE_API_KEY` (else `META_API_KEY`) on the relay host and
+  refuses loudly without one. API-billed ($0.18/audio-hour), never
+  subscription; WAV caps 32 MB / 10 min (relay ffmpeg-converts to 24 kHz
+  mono). Realtime proxy keeps the key server-side: the browser opens
+  `/api/asr/realtime?token=<relay-token>&mode=<mode>` and streams 24 kHz
+  int16 mono frames; the relay injects the Meta credential upstream.
 
 ## MCP + API use from an agent
 
 - Stdio (any MCP client): run `deno task mcp-stdio` with cwd `relay/`.
-  Tools: `muse_exec`, `transcribe_audio`, `ingest_document`,
-  `rss_episodes`. Stdio trusts the local caller (no token).
-- Streamable HTTP: `POST http://127.0.0.1:8787/mcp` with the relay
+  Tools: `muse_exec`, `voice_exec`, `transcribe_audio`,
+  `ingest_document`, `rss_episodes`. Stdio trusts the local caller (no
+  token). `transcribe_audio`/`voice_exec` take `engine:
+  "local"|"muse-voice".
+- Streamable HTTP: `POST http://127.0.0.1:8744/mcp` with the relay
   Bearer [REDACTED] JSON-RPC (`initialize`, `tools/list`,
   `tools/call`). Stateless; no SDK dependency.
 - Muse settings snippet (shape inferred from `muse mcp --help`;
   confirm against Muse on first connect):
   `{ "mcpServers": { "muse-code-gui": {
-    "url": "http://127.0.0.1:8787/mcp",
+    "url": "http://127.0.0.1:8744/mcp",
     "headers": { "Authorization": "Bearer <relay-token>" } } } }`
 - Example agent flow: `rss_episodes` → `transcribe_audio` (rss source +
   index) → `muse_exec` to summarize the transcript on the subscription.
@@ -67,6 +80,10 @@ tools. Auth is the same relay Bearer [REDACTED] on every route.
 - All four apps have a Transcribe view: url/rss/path source, language,
   diarize toggle, run/stop, progress status, `[mm:ss.mmm SPEAKER] text`
   segments. It shares each app's relay URL/token settings.
+- macOS shell adds an engine selector (local free/offline vs Muse Voice
+  API-billed) and a Live mic mode (realtime proxy, partial + final lines).
+  macOS mic permission is not a Tauri config key: after building, run
+  `npm run tauri:mic` (adds NSMicrophoneUsageDescription + re-signs).
 - Desktop apps also accept a file upload (multipart); mobile is
   URL/RSS/relay-path only in v1 (no document picker yet).
 - Android puts Exec/Transcribe behind a mode toggle; the other three

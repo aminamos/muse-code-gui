@@ -22,8 +22,8 @@ VERSION="0.1.0"
 TOKEN_ENV="MUSE_GUI_RELAY_TOKEN"
 MCP_NAME="muse-code"
 OMP_PROVIDER_ID="mcg-relay" # OMP reserves "muse-code" for native Muse auth
-RELAY_BASE_URL="http://127.0.0.1:8787/v1"
-RELAY_PORT="8787"
+RELAY_BASE_URL="http://127.0.0.1:8744/v1"
+RELAY_PORT="8744"
 
 REPO=""
 DRY_RUN=0
@@ -567,7 +567,40 @@ do_cmd() {
     "{\"transport\": \"stdio\", \"enabled\": true, \"command\": \"$DENO_ABS\", \"args\": [$STDIO_ARGS_JSON]}"
 }
 
+# --- port migration (8787 -> current default) --------------------------------
+# The relay default moved (workerd holds 8787). Existing provider entries would
+# otherwise keep pointing at the old port while the installer reports "untouched".
+OLD_PORT="8787"
+migrate_port() { # migrate_port <file>: rewrite 127.0.0.1:8787 -> 127.0.0.1:$RELAY_PORT
+  local f="$1"
+  [ -f "$f" ] || return 0
+  grep -q "127.0.0.1:$OLD_PORT" "$f" 2>/dev/null || return 0
+  say "  [$f]"
+  if [ "$DRY_RUN" = 1 ]; then
+    say "    planned: migrate 127.0.0.1:$OLD_PORT -> 127.0.0.1:$RELAY_PORT"
+    return 0
+  fi
+  backup_file "$f"
+  if have_bin python3; then
+    OLD_PORT="$OLD_PORT" NEW_PORT="$RELAY_PORT" TARGET="$f" python3 - <<'PYEOF'
+import os
+target = os.environ["TARGET"]
+old = "127.0.0.1:" + os.environ["OLD_PORT"]
+new = "127.0.0.1:" + os.environ["NEW_PORT"]
+text = open(target, encoding="utf-8").read()
+open(target, "w", encoding="utf-8").write(text.replace(old, new))
+PYEOF
+  else
+    sed -i.bak-mcu-port "s/127.0.0.1:$OLD_PORT/127.0.0.1:$RELAY_PORT/g" "$f"
+    rm -f "$f.bak-mcu-port"
+  fi
+  say "    migrated port $OLD_PORT -> $RELAY_PORT"
+}
+
 # --- main --------------------------------------------------------------------
+migrate_port "$OMP_DIR/models.yml"
+migrate_port "$OPENCODE_JSON"
+migrate_port "$CMD_DIR/providers.json"
 wanted omp      && do_omp
 wanted opencode && do_opencode
 wanted claude   && do_claude

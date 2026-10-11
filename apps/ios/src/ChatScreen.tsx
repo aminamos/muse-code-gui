@@ -46,6 +46,10 @@ function newSessionId(): string {
 interface ChatScreenProps {
   relayUrl: string;
   relayToken: string;
+  workspace: string;
+  model: string;
+  reasoningEffort: string;
+  approvalMode: string;
 }
 
 let messageId = 0;
@@ -55,7 +59,7 @@ function nextId(): number {
   return messageId;
 }
 
-export function ChatScreen({ relayUrl, relayToken }: ChatScreenProps) {
+export function ChatScreen({ relayUrl, relayToken, workspace, model, reasoningEffort, approvalMode }: ChatScreenProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [running, setRunning] = useState(false);
@@ -135,6 +139,10 @@ export function ChatScreen({ relayUrl, relayToken }: ChatScreenProps) {
           {
             prompt: text,
             sessionId: sessionRef.current,
+            ...(workspace.trim() ? { workspace: workspace.trim() } : {}),
+            ...(model.trim() ? { model: model.trim() } : {}),
+            ...(reasoningEffort.trim() ? { reasoningEffort: reasoningEffort.trim() } : {}),
+            ...(approvalMode.trim() ? { approvalMode: approvalMode.trim() } : {}),
             signal: controller.signal,
           },
         );
@@ -189,12 +197,16 @@ export function ChatScreen({ relayUrl, relayToken }: ChatScreenProps) {
     },
     [
       appendAssistantText,
+      approvalMode,
       configured,
       input,
+      model,
+      reasoningEffort,
       relayToken,
       relayUrl,
       running,
       updateMessage,
+      workspace,
     ],
   );
 
@@ -267,7 +279,7 @@ export function ChatScreen({ relayUrl, relayToken }: ChatScreenProps) {
                       ? ' (stopped)'
                       : ''}
               </Text>
-              <Text selectable>{m.text === '' ? '…' : m.text}</Text>
+              <Text selectable style={m.role === 'user' ? styles.userText : styles.assistantText}>{m.text === '' ? '…' : m.text}</Text>
             </View>
           ))
         )}
@@ -331,55 +343,66 @@ export function ChatScreen({ relayUrl, relayToken }: ChatScreenProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   hint: {
     fontSize: 13,
     marginBottom: 8,
+    opacity: 0.65,
   },
   list: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 6,
-    padding: 8,
   },
   listContent: {
-    paddingBottom: 8,
-    gap: 8,
+    paddingVertical: 12,
+    gap: 14,
   },
   empty: {
-    fontSize: 13,
-    color: '#555',
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 48,
+    opacity: 0.6,
   },
   bubble: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 8,
+    borderRadius: 16,
+    padding: 12,
   },
   userBubble: {
-    backgroundColor: '#eee',
-    marginLeft: 32,
+    backgroundColor: '#0a84ff',
+    marginLeft: 48,
+    borderBottomRightRadius: 4,
   },
   assistantBubble: {
-    backgroundColor: '#fafafa',
-    marginRight: 8,
+    backgroundColor: '#f2f2f7',
+    marginRight: 12,
+    borderBottomLeftRadius: 4,
+  },
+  userText: {
+    color: '#fff',
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  assistantText: {
+    color: '#111',
+    fontSize: 15,
+    lineHeight: 22,
   },
   role: {
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
+    opacity: 0.6,
   },
   errorRow: {
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#b00020',
-    borderRadius: 6,
-    padding: 8,
+    borderColor: '#ff3b30',
+    borderRadius: 12,
+    padding: 10,
   },
   errorText: {
     fontSize: 13,
-    color: '#b00020',
+    color: '#ff3b30',
   },
   errorButtons: {
     flexDirection: 'row',
@@ -391,14 +414,17 @@ const styles = StyleSheet.create({
   },
   composer: {
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#e5e5ea',
+    borderRadius: 16,
+    padding: 8,
+    backgroundColor: '#f2f2f7',
   },
   composerInput: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 6,
     padding: 8,
-    minHeight: 56,
+    minHeight: 44,
     maxHeight: 140,
+    fontSize: 15,
   },
   composerRow: {
     flexDirection: 'row',
